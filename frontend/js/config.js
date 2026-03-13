@@ -6,7 +6,7 @@
 
 // Production backend URL - UPDATE THIS when deploying
 // Example: "https://your-app.onrender.com/api"
-const PRODUCTION_API_URL = "https://YOUR-RENDER-BACKEND-URL.onrender.com/api";
+const PRODUCTION_API_URL = "https://app-reviews-analyzer-1.onrender.com/api";
 
 // Auto-detect environment
 const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
