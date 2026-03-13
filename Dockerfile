@@ -28,6 +28,7 @@ RUN apt-get update && apt-get install -y \
     libxkbcommon0 \
     libxrandr2 \
     xdg-utils \
+    fonts-unifont \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
@@ -38,7 +39,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Install Playwright browsers
 RUN playwright install chromium
-RUN playwright install-deps chromium
+# Skip playwright install-deps as we manually installed required packages above
 
 # Copy the entire project
 COPY . .
