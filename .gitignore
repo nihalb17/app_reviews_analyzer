@@ -1,0 +1,83 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Playwright
+.playwright/
+
+# Generated files (keep directories)
+backend/Phase_1_Data_Ingestion_Layer/data/*.json
+backend/Phase_1_Data_Ingestion_Layer/data/*.csv
+!backend/Phase_1_Data_Ingestion_Layer/data/.gitkeep
+
+backend/Phase_2_Theme_Extraction_Classification/data/*.json
+!backend/Phase_2_Theme_Extraction_Classification/data/.gitkeep
+
+backend/Phase_3_Insight_Generation/data/*.json
+!backend/Phase_3_Insight_Generation/data/.gitkeep
+
+backend/Phase_4_Report_Generation/data/*.json
+backend/Phase_4_Report_Generation/output/*.pdf
+backend/Phase_4_Report_Generation/output/*.html
+!backend/Phase_4_Report_Generation/data/.gitkeep
+!backend/Phase_4_Report_Generation/output/.gitkeep
+
+backend/backend_data/*.json
+!backend/backend_data/.gitkeep
+
+# Node modules (if any)
+node_modules/

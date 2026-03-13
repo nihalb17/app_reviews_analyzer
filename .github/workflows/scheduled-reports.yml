@@ -1,0 +1,87 @@
+name: Scheduled Reports
+
+on:
+  schedule:
+    # Run every 3 hours at :30 minutes (IST timezone)
+    # IST = UTC + 5:30
+    # 00:30 IST = 19:00 UTC (previous day)
+    # 03:30 IST = 22:00 UTC (previous day)
+    # 06:30 IST = 01:00 UTC
+    # 09:30 IST = 04:00 UTC
+    # 12:30 IST = 07:00 UTC
+    # 15:30 IST = 10:00 UTC
+    # 18:30 IST = 13:00 UTC
+    # 21:30 IST = 16:00 UTC
+    # GitHub Actions cron format: minute hour day month day-of-week
+    - cron: '30 19,22,1,4,7,10,13,16 * * *'
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for manual trigger'
+        required: false
+        default: 'Manual trigger'
+
+jobs:
+  generate-report:
+    runs-on: ubuntu-latest
+    name: Generate Product Insights Report
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
+      
+      - name: Trigger Report Generation
+        env:
+          API_ENDPOINT: ${{ secrets.API_ENDPOINT }}
+          API_TOKEN: ${{ secrets.API_TOKEN }}
+        run: |
+          echo "Triggering scheduled report generation..."
+          echo "API Endpoint: $API_ENDPOINT"
+          
+          # Fixed parameters as per configuration
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${API_ENDPOINT}/api/triggers/scheduled" \
+            -H "Authorization: Bearer ${API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "weeks": 9,
+              "reviews_count": 1000,
+              "role": "Product",
+              "recipient_name": "Nihal",
+              "recipient_email": "nihalreddyb1997@gmail.com",
+              "mode": "email",
+              "type": "Scheduler"
+            }')
+          
+          # Extract HTTP status code (last line)
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          # Extract response body (all lines except last)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+          
+          echo "Response Body: $BODY"
+          echo "HTTP Status: $HTTP_CODE"
+          
+          if [ "$HTTP_CODE" -eq 200 ] || [ "$HTTP_CODE" -eq 202 ]; then
+            echo "✅ Report generation triggered successfully"
+            exit 0
+          else
+            echo "❌ Failed to trigger report generation"
+            echo "Status Code: $HTTP_CODE"
+            exit 1
+          fi
+      
+      - name: Log trigger result
+        if: always()
+        run: |
+          echo "Workflow completed at $(date)"
+          echo "Trigger Type: ${{ github.event_name }}"
+          echo "Triggered by: ${{ github.actor }}"

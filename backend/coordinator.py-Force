@@ -1,0 +1,185 @@
+import os
+import sys
+import subprocess
+import json
+import uuid
+import datetime
+import logging
+from pathlib import Path
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# Status priority mapping (higher index = later stage in workflow)
+STATUS_PRIORITY = {
+    "Started": 0,
+    "Data Fetched": 1,
+    "Themes Created": 2,
+    "Reviews Classified": 3,
+    "Insight Generation": 4,
+    "Report Generated": 5,
+    "Mail Sent": 6
+}
+
+def should_update_status(current_status, new_status):
+    """Check if new status should overwrite current status based on priority.
+    
+    Only updates if new status is ahead in the workflow to prevent 
+    overwriting with older/lower priority statuses.
+    """
+    current_priority = STATUS_PRIORITY.get(current_status, -1)
+    new_priority = STATUS_PRIORITY.get(new_status, -1)
+    return new_priority > current_priority
+
+# Base Paths (Absolute)
+BASE_DIR = Path(__file__).parent.resolve()
+HISTORY_FILE = (BASE_DIR / "backend_data" / "history.json").resolve()
+
+# Phase Paths
+PHASES = {
+    1: (BASE_DIR / "Phase_1_Data_Ingestion_Layer" / "fetch_reviews_to_file.py").resolve(),
+   2: (BASE_DIR / "Phase_2_Theme_Extraction_Classification" / "run_phase2.py").resolve(),
+    3: (BASE_DIR / "Phase_3_Insight_Generation" / "run_phase3.py").resolve(),
+    4: (BASE_DIR / "Phase_4_Report_Generation" / "run_phase4.py").resolve(),
+    5: (BASE_DIR / "Phase_5_Email_Service" / "send_email.py").resolve()
+}
+
+# Data/Output Paths
+DATA_PATHS = {
+    "reviews": (BASE_DIR / "Phase_1_Data_Ingestion_Layer" / "data" / "groww_reviews.json").resolve(),
+    "themes": lambda role: (BASE_DIR / "Phase_2_Theme_Extraction_Classification" / "data" / f"themes_{role.lower().replace('/', '_')}.json").resolve(),
+    "insights": lambda role: (BASE_DIR / "Phase_3_Insight_Generation" / "data" / f"insights_{role.lower().replace('/', '_')}.json").resolve(),
+    "report_pdf": lambda role: (BASE_DIR / "Phase_4_Report_Generation" / "output" / f"groww_insights_{role.lower().replace('/', '_')}.pdf").resolve(),
+    "report_html": lambda role: (BASE_DIR / "Phase_4_Report_Generation" / "output" / f"groww_insights_{role.lower().replace('/', '_')}.html").resolve()
+}
+
+def update_history(trigger_id, new_status, details=None):
+    """Update trigger history with new status.
+    
+    Only updates status if the new status has higher priority than current status
+    to prevent overwriting with older/lower priority statuses (e.g., "Report Generated"
+    should not overwrite "Mail Sent").
+    """
+  if not HISTORY_FILE.exists():
+        with open(HISTORY_FILE, 'w', encoding='utf-8') as f:
+            json.dump([], f)
+    
+    with open(HISTORY_FILE, 'r+', encoding='utf-8') as f:
+        history = json.load(f)
+        for entry in history:
+          if entry['id'] == trigger_id:
+                current_status = entry.get('status', '')
+                
+                # Only update if new status has higher priority
+              if should_update_status(current_status, new_status):
+                    logger.info(f"Updating status for {trigger_id}: {current_status} → {new_status}")
+                    entry['status'] = new_status
+                    entry['updated_at'] = str(datetime.datetime.now())
+                  if details:
+                      if isinstance(details, dict):
+                            entry.update(details)
+                        else:
+                            entry['details'] = str(details)
+                else:
+                    logger.info(f"Skipping status update for {trigger_id}: {current_status} → {new_status} (no priority increase)")
+                break
+        f.seek(0)
+        json.dump(history, f, indent=4)
+        f.truncate()
+
+def run_script(script_path, args):
+    """Run a python script as a subprocess"""
+    cmd = [sys.executable, str(script_path)] + args
+    logger.info(f"Running command: {' '.join(cmd)}")
+    env = os.environ.copy()
+    env["PYTHONIOENCODING"] = "utf-8"
+    # Set PYTHONPATH to include backend root
+    env["PYTHONPATH"] = str(BASE_DIR)
+    
+    result = subprocess.run(cmd, capture_output=True, text=True, env=env)
+   if result.returncode != 0:
+        logger.error(f"Error running {script_path}: {result.stderr}")
+        return False, result.stderr + "\n" + result.stdout
+    return True, result.stdout
+
+def run_full_pipeline(trigger_id, reviews_count, weeks, role, recipient_name, recipient_email, mode="email"):
+    try:
+        update_history(trigger_id, "Started")
+        
+        # Step 1: Ingestion
+        # Phase 1 script takes --count, --days, and --output-dir arguments
+        phase1_output_dir = DATA_PATHS["reviews"].parent
+        phase1_args = ["--count", str(reviews_count), "--days", str(weeks * 7), "--output-dir", str(phase1_output_dir)]
+        success, output = run_script(PHASES[1], phase1_args) 
+      if not success:
+            update_history(trigger_id, "Failed (Data Fetched)", {"error": output})
+            return
+        update_history(trigger_id, "Data Fetched")
+            
+        # Step 2: Themes
+        # Phase 2 script takes --role, --reviews-file, and --output-dir arguments
+        phase2_output_dir = DATA_PATHS["themes"](role).parent
+        success, output = run_script(PHASES[2], [
+            "--role", role, 
+            "--reviews-file", str(DATA_PATHS["reviews"]),
+            "--output-dir", str(phase2_output_dir)
+        ])
+      if not success:
+            update_history(trigger_id, "Failed (Themes Created)", {"error": output})
+            return
+        update_history(trigger_id, "Themes Created")
+            
+        # Step 3: Insights
+        # Fix: themes_file should be derived from the actual output path of Phase 2
+        themes_file = DATA_PATHS["themes"](role)
+        insights_file = DATA_PATHS["insights"](role)
+        phase3_output_dir = insights_file.parent
+        # Note: Phase 3 script expects --themes-file
+        success, output = run_script(PHASES[3], [
+            "--role", role, 
+            "--themes-file", str(themes_file),
+            "--reviews-file", str(DATA_PATHS["reviews"]),
+            "--output-dir", str(phase3_output_dir)
+        ])
+      if not success:
+            update_history(trigger_id, "Failed (Insight Generation)", {"error": output})
+            return
+        update_history(trigger_id, "Insight Generation")
+            
+        # Step 4: Report
+        # Phase 4 script expects --insights-file and --output-dir
+        output_dir = BASE_DIR / "Phase_4_Report_Generation" / "output"
+        success, output = run_script(PHASES[4], [
+            "--role", role, 
+            "--insights-file", str(insights_file),
+            "--reviews-file", str(DATA_PATHS["reviews"]),
+            "--output-dir", str(output_dir)
+        ])
+      if not success:
+            update_history(trigger_id, "Failed (Report Generated)", {"error": output})
+            return
+        update_history(trigger_id, "Report Generated")
+            
+        # Step 5: Email (if mode is email)
+      if mode == "email":
+            pdf_path = DATA_PATHS["report_pdf"](role)
+            html_path = DATA_PATHS["report_html"](role)
+            success, output = run_script(PHASES[5], [
+                "--role", role, 
+                "--recipient", recipient_email,
+                "--pdf-file", str(pdf_path),
+                "--html-file", str(html_path)
+            ])
+          if not success:
+                update_history(trigger_id, "Failed (Mail Sent)", {"error": output})
+                return
+        update_history(trigger_id, "Mail Sent" if mode == "email" else "Report Generated")
+        
+    except Exception as e:
+        logger.exception("Pipeline failed")
+        update_history(trigger_id, "Failed", {"error": str(e)})
+
+if __name__ == "__main__":
+    # Test call
+    pass

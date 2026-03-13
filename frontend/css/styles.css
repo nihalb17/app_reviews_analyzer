@@ -1,0 +1,814 @@
+/* ============================================
+   CSS Variables - Light Theme
+   ============================================ */
+:root {
+    /* Groww Brand Colors */
+    --primary-color: #00D09C;
+    --primary-hover: #00b386;
+    --primary-light: rgba(0, 208, 156, 0.1);
+    --secondary-color: #5367FF;
+    --secondary-hover: #4555d1;
+    --secondary-light: rgba(83, 103, 255, 0.1);
+    
+    /* Background Colors */
+    --bg-color: #F4F7FE;
+    --card-bg: #FFFFFF;
+    --sidebar-bg: #FFFFFF;
+    
+    /* Text Colors */
+    --text-primary: #1A1A1A;
+    --text-secondary: #6C6C6C;
+    --text-muted: #9CA3AF;
+    
+    /* Border & Divider */
+    --border-color: #E0E0E0;
+    --divider-color: #F0F0F0;
+    
+    /* Status Colors */
+    --success-color: #00D09C;
+    --success-bg: rgba(0, 208, 156, 0.1);
+    --error-color: #FF4D4D;
+    --error-bg: rgba(255, 77, 77, 0.1);
+    --warning-color: #FFC107;
+    --warning-bg: rgba(255, 193, 7, 0.1);
+    --info-color: #5367FF;
+    --info-bg: rgba(83, 103, 255, 0.1);
+    
+    /* Shadows */
+    --shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.1);
+    
+    /* Transitions */
+    --transition: all 0.3s ease;
+    --transition-fast: all 0.15s ease;
+}
+
+/* ============================================
+   CSS Variables - Dark Theme
+   ============================================ */
+[data-theme="dark"] {
+    /* Groww Brand Colors */
+    --primary-color: #00D09C;
+    --primary-hover: #00e6ac;
+    --primary-light: rgba(0, 208, 156, 0.15);
+    --secondary-color: #6B7BFF;
+    --secondary-hover: #7a89ff;
+    --secondary-light: rgba(83, 103, 255, 0.15);
+    
+    /* Background Colors */
+    --bg-color: #0F172A;
+    --card-bg: #1E293B;
+    --sidebar-bg: #1E293B;
+    
+    /* Text Colors */
+    --text-primary: #F1F5F9;
+    --text-secondary: #94A3B8;
+    --text-muted: #64748B;
+    
+    /* Border & Divider */
+    --border-color: #334155;
+    --divider-color: #2D3A4F;
+    
+    /* Status Colors */
+    --success-color: #00D09C;
+    --success-bg: rgba(0, 208, 156, 0.15);
+    --error-color: #FF6B6B;
+    --error-bg: rgba(255, 107, 107, 0.15);
+    --warning-color: #FFD93D;
+    --warning-bg: rgba(255, 217, 61, 0.15);
+    --info-color: #6B7BFF;
+    --info-bg: rgba(107, 123, 255, 0.15);
+    
+    /* Shadows */
+    --shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* ============================================
+   Base Styles
+   ============================================ */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+    transition: var(--transition);
+}
+
+/* ============================================
+   Main Content Layout
+   ============================================ */
+.main-content {
+    margin: 0 auto;
+    max-width: 1400px;
+    padding: 2rem;
+    width: 100%;
+}
+
+/* ============================================
+   Header Section
+   ============================================ */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.header-left h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.header-left p {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+/* ============================================
+   Buttons
+   ============================================ */
+.btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    border: none;
+    font-size: 0.875rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-hover);
+    box-shadow: 0 4px 12px rgba(0, 208, 156, 0.3);
+}
+
+.btn-secondary {
+    background-color: var(--secondary-light);
+    color: var(--secondary-color);
+    border: 1px solid var(--secondary-color);
+}
+
+.btn-secondary:hover {
+    background-color: var(--secondary-color);
+    color: white;
+}
+
+.btn-danger {
+    background-color: var(--error-bg);
+    color: var(--error-color);
+    border: 1px solid var(--error-color);
+}
+
+.btn-danger:hover {
+    background-color: var(--error-color);
+    color: white;
+}
+
+.btn-icon {
+    padding: 0.5rem;
+    border-radius: 10px;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-icon:hover {
+    background-color: var(--primary-light);
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* ============================================
+   Theme Toggle
+   ============================================ */
+.theme-toggle {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+}
+
+.theme-toggle:hover {
+    background-color: var(--primary-light);
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+/* ============================================
+   Empty State
+   ============================================ */
+.empty-state {
+    text-align: center;
+    padding: 5rem 2rem;
+    background: var(--card-bg);
+    border-radius: 24px;
+    box-shadow: var(--shadow);
+    border: 2px dashed var(--border-color);
+    margin-top: 2rem;
+}
+
+.empty-icon {
+    width: 80px;
+    height: 80px;
+    background: var(--primary-light);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    color: var(--primary-color);
+}
+
+.empty-state h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+    color: var(--text-secondary);
+    margin-bottom: 2rem;
+}
+
+/* ============================================
+   History Table Section
+   ============================================ */
+.history-section {
+    margin-top: 2rem;
+}
+
+.history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.history-header h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.refresh-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    border: none;
+    background: var(--secondary-light);
+    color: var(--secondary-color);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+}
+
+.refresh-btn:hover {
+    background: var(--secondary-color);
+    color: white;
+    transform: rotate(180deg);
+}
+
+.table-container {
+    background-color: var(--card-bg);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 1000px;
+}
+
+th {
+    background-color: var(--bg-color);
+    padding: 1rem 1.25rem;
+    text-align: left;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+td {
+    padding: 1.25rem 1.25rem;
+    border-bottom: 1px solid var(--divider-color);
+    font-size: 0.9rem;
+    color: var(--text-primary);
+}
+
+tr:last-child td {
+    border-bottom: none;
+}
+
+tr:hover td {
+    background-color: var(--bg-color);
+}
+
+/* ============================================
+   Status Badges
+   ============================================ */
+.badge {
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.badge-success {
+    background-color: var(--success-bg);
+    color: var(--success-color);
+}
+
+.badge-info {
+    background-color: var(--info-bg);
+    color: var(--info-color);
+}
+
+.badge-warning {
+    background-color: var(--warning-bg);
+    color: var(--warning-color);
+}
+
+.badge-error {
+    background-color: var(--error-bg);
+    color: var(--error-color);
+}
+
+/* Status dot indicator */
+.badge::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+/* ============================================
+   Action Buttons in Table
+   ============================================ */
+.action-btn-group {
+    display: flex;
+    gap: 8px;
+}
+
+.action-btn {
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    cursor: pointer;
+    transition: var(--transition);
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.action-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    background: var(--primary-light);
+}
+
+.action-btn.view:hover {
+    border-color: var(--info-color);
+    color: var(--info-color);
+    background: var(--info-bg);
+}
+
+.action-btn.retry:hover {
+    border-color: var(--warning-color);
+    color: var(--warning-color);
+    background: var(--warning-bg);
+}
+
+.action-btn.delete:hover {
+    border-color: var(--error-color);
+    color: var(--error-color);
+    background: var(--error-bg);
+}
+
+/* ============================================
+   Modal Styles
+   ============================================ */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    backdrop-filter: blur(4px);
+}
+
+.modal-content {
+    background: var(--card-bg);
+    border-radius: 20px;
+    box-shadow: var(--shadow-lg);
+    width: 100%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    animation: slideIn 0.3s ease;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid var(--divider-color);
+}
+
+.modal-header h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 8px;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-close:hover {
+    background: var(--bg-color);
+    color: var(--text-primary);
+}
+
+.modal-body {
+    padding: 2rem;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    padding: 1.5rem 2rem;
+    border-top: 1px solid var(--divider-color);
+}
+
+/* ============================================
+   Form Styles
+   ============================================ */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+.form-group label .required {
+    color: var(--error-color);
+    margin-left: 2px;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    color: var(--text-primary);
+    outline: none;
+    transition: var(--transition);
+    font-size: 0.9rem;
+}
+
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.form-control.error {
+    border-color: var(--error-color);
+}
+
+.form-control:disabled {
+    background: var(--bg-color);
+    cursor: not-allowed;
+}
+
+select.form-control {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%236C6C6C' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 1rem;
+    padding-right: 3rem;
+    background-color: var(--card-bg);
+    color: var(--text-primary);
+}
+
+select.form-control option {
+    background-color: var(--card-bg);
+    color: var(--text-primary);
+}
+
+/* Fix for dropdown rendering issues */
+select.form-control:focus {
+    background-color: var(--card-bg);
+}
+
+/* Ensure dropdown is visible in both themes */
+select {
+    background-color: var(--card-bg) !important;
+}
+
+.form-error {
+    color: var(--error-color);
+    font-size: 0.75rem;
+    margin-top: 0.5rem;
+    display: none;
+}
+
+.form-error.visible {
+    display: block;
+}
+
+.form-hint {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+/* ============================================
+   Schedule Type Selector
+   ============================================ */
+.schedule-type-section {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--divider-color);
+}
+
+.schedule-type-section h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+}
+
+.schedule-type-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.schedule-type-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1.25rem 0.5rem;
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--card-bg);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.schedule-type-card:hover {
+    border-color: var(--secondary-color);
+}
+
+.schedule-type-card.active {
+    border-color: var(--secondary-color);
+    background: var(--secondary-light);
+    color: var(--secondary-color);
+}
+
+.schedule-type-card i {
+    width: 24px;
+    height: 24px;
+}
+
+.schedule-type-card span {
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.schedule-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.schedule-options.single {
+    grid-template-columns: 1fr;
+}
+
+/* Time input styling */
+input[type="time"].form-control {
+    font-family: inherit;
+}
+
+/* ============================================
+   Confirmation Modal
+   ============================================ */
+.confirm-modal .modal-content {
+    max-width: 400px;
+}
+
+.confirm-modal .modal-body {
+    text-align: center;
+    padding: 2rem;
+}
+
+.confirm-icon {
+    width: 60px;
+    height: 60px;
+    background: var(--error-bg);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    color: var(--error-color);
+}
+
+.confirm-modal h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.confirm-modal p {
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+}
+
+/* ============================================
+   Animations
+   ============================================ */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease forwards;
+}
+
+/* ============================================
+   Responsive Design
+   ============================================ */
+@media (max-width: 768px) {
+    .main-content {
+        padding: 1rem;
+    }
+    
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .header-right {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+    
+    .schedule-type-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .schedule-options {
+        grid-template-columns: 1fr;
+    }
+    
+    .modal-content {
+        max-width: 100%;
+        margin: 1rem;
+    }
+    
+    .modal-body {
+        padding: 1.5rem;
+    }
+    
+    th, td {
+        padding: 1rem;
+    }
+}
+
+/* ============================================
+   Scrollbar Styling
+   ============================================ */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-color);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+    background: var(--text-muted);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
+}
