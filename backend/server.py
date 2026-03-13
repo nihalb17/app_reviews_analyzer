@@ -12,6 +12,19 @@ from typing import List, Optional
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
+# IST timezone offset (UTC+5:30)
+IST_OFFSET = datetime.timedelta(hours=5, minutes=30)
+
+def get_ist_datetime() -> datetime.datetime:
+    """Get current datetime in IST timezone"""
+    return datetime.datetime.now(datetime.timezone.utc) + IST_OFFSET
+
+def format_ist_datetime(dt: datetime.datetime = None) -> str:
+    """Format datetime as DD-MM-YYYY HH:MM in IST"""
+    if dt is None:
+        dt = get_ist_datetime()
+    return dt.strftime("%d-%m-%Y %H:%M")
+
 # Load .env file if exists
 env_path = Path(__file__).parent.parent / '.env'
 if env_path.exists():
@@ -113,8 +126,8 @@ async def trigger_analysis(req: TriggerRequest, background_tasks: BackgroundTask
     
     new_entry = {
         "id": trigger_id,
-        "date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
-        "timestamp": str(datetime.datetime.now()),
+        "date": format_ist_datetime(),
+        "timestamp": str(get_ist_datetime()),
         "reviews": req.reviews_count,
         "weeks": req.weeks,
         "period": f"Last {req.weeks} Week{'s' if req.weeks > 1 else ''}",
@@ -159,8 +172,8 @@ async def scheduled_trigger(
     
     new_entry = {
         "id": trigger_id,
-        "date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
-        "timestamp": str(datetime.datetime.now()),
+        "date": format_ist_datetime(),
+        "timestamp": str(get_ist_datetime()),
         "reviews": req.reviews_count,
         "weeks": req.weeks,
         "period": f"Last {req.weeks} Week{'s' if req.weeks > 1 else ''}",

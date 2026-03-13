@@ -6,8 +6,21 @@ Assembles report data from Phase 3 insights for PDF generation.
 
 import json
 from typing import Dict, Any, List, Optional
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+
+# IST timezone offset (UTC+5:30)
+IST_OFFSET = timedelta(hours=5, minutes=30)
+
+def get_ist_datetime() -> datetime:
+    """Get current datetime in IST timezone"""
+    return datetime.now(timezone.utc) + IST_OFFSET
+
+def format_ist_datetime(dt: datetime = None) -> str:
+    """Format datetime as DD-MM-YYYY HH:MM in IST"""
+    if dt is None:
+        dt = get_ist_datetime()
+    return dt.strftime("%d-%m-%Y %H:%M")
 
 
 class ReportBuilder:
@@ -50,7 +63,7 @@ class ReportBuilder:
             'metadata': {
                 'total_reviews': metadata.get('total_reviews', 0),
                 'date_range': metadata.get('date_range', 'N/A'),
-                'analysis_date': datetime.now().strftime('%d-%m-%Y %H:%M'),
+                'analysis_date': format_ist_datetime(),
                 'weeks_covered': metadata.get('weeks_covered', '10')
             },
             'executive_summary': insights.get('summary', ''),
