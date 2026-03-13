@@ -1,25 +1,19 @@
 """Configuration for Phase 5 Email Service"""
 from pydantic_settings import BaseSettings
-from typing import Dict
 
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables"""
     
-    # SMTP Configuration
-    SMTP_HOST: str = "smtp.gmail.com"
-    SMTP_PORT: int = 587
-    SMTP_USER: str = ""
-    SMTP_PASSWORD: str = ""
+    # Resend Configuration
+    RESEND_API_KEY: str = ""
+    RESEND_FROM_EMAIL: str = "onboarding@resend.dev"
     
     # Role-based email mappings
     PRODUCT_TEAM_EMAIL: str = ""
     SUPPORT_TEAM_EMAIL: str = ""
     UI_UX_TEAM_EMAIL: str = ""
     LEADERSHIP_TEAM_EMAIL: str = ""
-    
-    # Default sender
-    DEFAULT_SENDER: str = ""
     
     class Config:
         env_file = "../../.env"
@@ -34,7 +28,7 @@ class Settings(BaseSettings):
             'UI/UX': self.UI_UX_TEAM_EMAIL,
             'Leadership': self.LEADERSHIP_TEAM_EMAIL
         }
-        return role_emails.get(role, self.DEFAULT_SENDER)
+        return role_emails.get(role, "")
 
 
 settings = Settings()
