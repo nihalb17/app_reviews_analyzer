@@ -228,8 +228,9 @@ function renderHistoryRow(row, index) {
 }
 
 function renderActionButtons(row, isMostRecent, isFailed, isMailSent) {
-    // Most recent trigger with Mail Sent status - View PDF only
-    if (isMostRecent && isMailSent) {
+    // Most recent trigger with Mail Sent or Report Generated status - View PDF
+    const isReportReady = isMailSent || row.status === 'Report Generated';
+    if (isMostRecent && isReportReady) {
         return `
             <button class="action-btn view" onclick="handleViewPDF('${row.id}')">
                 <i data-lucide="file-text" size="14"></i> View PDF
