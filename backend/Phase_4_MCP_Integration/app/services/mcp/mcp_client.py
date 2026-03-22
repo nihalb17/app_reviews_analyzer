@@ -332,6 +332,9 @@ class RawMCPClient:
         
         def read_response():
             try:
+                # For large responses, we need to accumulate data across multiple reads
+                pending_json = ""
+                
                 # Keep reading lines until we get a valid JSON-RPC response with matching ID
                 while True:
                     try:
@@ -357,51 +360,45 @@ class RawMCPClient:
                     if not decoded_line:
                         continue
                     
-                    # Try to parse as JSON first (even if it doesn't start with {)
-                    # The server might embed JSON in log messages
-                    parsed = None
-                    json_str = decoded_line
-                    
-                    # Check if this is a log message containing JSON
-                    if '[Server Log]' in decoded_line:
-                        # Try to extract JSON from after the log prefix
-                        json_start = decoded_line.find('{')
-                        if json_start != -1:
-                            json_str = decoded_line[json_start:]
-                    
-                    try:
-                        parsed = json.loads(json_str)
-                        print(f"[JSON] Parsed: keys={list(parsed.keys())}, id={parsed.get('id')}, has_result={'result' in parsed}, has_error={'error' in parsed}")
-                    except json.JSONDecodeError as e:
-                        # Check if this might be truncated JSON (starts with { but doesn't end properly)
-                        if json_str.strip().startswith('{') and not json_str.strip().endswith('}'):
-                            print(f"[MCP] Warning: Truncated JSON detected: {json_str[:100]}...")
-                            print(f"[MCP] JSON error: {e}")
-                            # Try to accumulate more data
-                            continue
-                        # Not JSON, treat as log message
-                        print(f"[Server Log] {decoded_line[:200]}")
+                    # Check if this is a log message (starts with [INFO], [ERROR], etc.)
+                    if decoded_line.startswith('[') and not decoded_line.startswith('[{'):
+                        print(f"[Server Log] {decoded_line[:150]}")
                         response_container["server_logs"].append(decoded_line)
                         continue
                     
-                    # Check if this is a notification (no 'id' field) - skip it
-                    if "id" not in parsed:
-                        # This is a notification, log it and continue
-                        if "method" in parsed and parsed["method"] == "notifications/message":
-                            msg = parsed.get("params", {}).get("data", {}).get("message", "")
-                            print(f"[Notification] {msg}")
-                        else:
-                            print(f"[JSON] No 'id' field, skipping: {list(parsed.keys())}")
-                        continue
+                    # This might be JSON - add to pending
+                    pending_json += decoded_line
                     
-                    # Check if this response matches our request ID
-                    if parsed.get("id") == request_id:
-                        print(f"[JSON] Match! Request ID {request_id} found")
-                        response_container["data"] = json_str
-                        break
-                    else:
-                        # Response ID doesn't match, might be from a previous request
-                        print(f"[Warning] Response ID mismatch: expected {request_id}, got {parsed.get('id')}")
+                    # Try to parse the accumulated JSON
+                    try:
+                        parsed = json.loads(pending_json)
+                        print(f"[JSON] Parsed: keys={list(parsed.keys())}, id={parsed.get('id')}")
+                        
+                        # Check if this is a notification (no 'id' field) - skip it
+                        if "id" not in parsed:
+                            if "method" in parsed and parsed["method"] == "notifications/message":
+                                msg = parsed.get("params", {}).get("data", {}).get("message", "")
+                                print(f"[Notification] {msg}")
+                            else:
+                                print(f"[JSON] No 'id' field, skipping")
+                            pending_json = ""  # Reset for next response
+                            continue
+                        
+                        # Check if this response matches our request ID
+                        if parsed.get("id") == request_id:
+                            print(f"[JSON] Match! Request ID {request_id} found")
+                            response_container["data"] = pending_json
+                            break
+                        else:
+                            print(f"[Warning] Response ID mismatch: expected {request_id}, got {parsed.get('id')}")
+                            pending_json = ""  # Reset for next response
+                            
+                    except json.JSONDecodeError:
+                        # JSON incomplete, continue accumulating
+                        if len(pending_json) > 100000:
+                            print(f"[MCP] Warning: Pending JSON too large ({len(pending_json)} chars), resetting")
+                            pending_json = ""
+                        continue
                         
             except Exception as e:
                 import traceback
