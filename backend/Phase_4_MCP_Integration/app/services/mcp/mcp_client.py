@@ -167,11 +167,19 @@ class RawMCPClient:
         client_secret = os.environ.get("GOOGLE_CLIENT_SECRET")
         refresh_token = os.environ.get("GOOGLE_REFRESH_TOKEN")
         
+        print(f"Checking Google OAuth credentials...")
+        print(f"  GOOGLE_CLIENT_ID: {'set' if client_id else 'NOT SET'}")
+        print(f"  GOOGLE_CLIENT_SECRET: {'set' if client_secret else 'NOT SET'}")
+        print(f"  GOOGLE_REFRESH_TOKEN: {'set' if refresh_token else 'NOT SET'}")
+        
         if client_id and client_secret and refresh_token:
             # Check if token file already exists
             home_dir = Path.home()
             token_dir = home_dir / ".config" / "google-docs-mcp"
             token_file = token_dir / "token.json"
+            
+            print(f"Token file path: {token_file}")
+            print(f"Token file exists: {token_file.exists()}")
             
             if not token_file.exists():
                 print("Creating token.json from environment variables...")
@@ -188,6 +196,10 @@ class RawMCPClient:
                     json.dump(token_data, f, indent=2)
                 
                 print(f"Token file created at: {token_file}")
+            else:
+                print(f"Token file already exists at: {token_file}")
+        else:
+            print("WARNING: Google OAuth credentials not fully configured!")
     
     def _ensure_nodejs(self) -> bool:
         """
@@ -218,6 +230,8 @@ class RawMCPClient:
         """
         home_dir = Path.home()
         
+        print("Checking Google credential files...")
+        
         # Check for @a-bonus/google-docs-mcp token
         bonus_paths = [
             home_dir / ".config" / "google-docs-mcp" / "token.json",
@@ -225,13 +239,17 @@ class RawMCPClient:
         ]
         
         for path in bonus_paths:
+            print(f"  Checking: {path} - {'EXISTS' if path.exists() else 'not found'}")
             if path.exists():
+                print("Google credentials found via token file!")
                 return True
         
         # Also check if GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set
         if settings.GOOGLE_CLIENT_ID and settings.GOOGLE_CLIENT_SECRET:
+            print("Google credentials found via environment variables!")
             return True
         
+        print("WARNING: No Google credentials found!")
         return False
     
     def _get_npx_command(self) -> str:
@@ -255,14 +273,20 @@ class RawMCPClient:
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write(content)
         
+        # Log the issue prominently
+        print("=" * 60)
+        print(f"WARNING: Google Doc NOT updated - {note}")
+        print(f"Content saved locally to: {output_file}")
+        print("=" * 60)
+        
         return {
-            "success": True,
-            "message": "Content saved locally (MCP not available)",
+            "success": False,
+            "error": "Google Doc update failed",
+            "message": note,
             "document_url": self.document_url,
             "document_id": self.google_doc_id,
             "local_file": str(output_file),
-            "content_length": len(content),
-            "note": note
+            "content_length": len(content)
         }
     
     def _get_next_request_id(self) -> int:
