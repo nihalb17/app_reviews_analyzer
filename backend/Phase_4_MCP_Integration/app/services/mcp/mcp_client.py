@@ -582,6 +582,14 @@ class RawMCPClient:
             True if server started successfully
         """
         try:
+            # Kill any existing MCP server processes to ensure clean state
+            import subprocess as sp
+            try:
+                sp.run(["pkill", "-f", "google-docs-mcp"], capture_output=True)
+                time.sleep(0.5)
+            except:
+                pass
+            
             npx_cmd = self._get_npx_command()
             print(f"Starting MCP server with: {npx_cmd}")
             print(f"Package: {self.mcp_server_package}")
@@ -727,7 +735,14 @@ class RawMCPClient:
             print("Listing available tools...")
             tools = self._list_tools()
             
+            print(f"  Tools response: {tools}")
+            
             if not tools:
+                print("  ERROR: No tools returned from MCP server")
+                print("  This may indicate:")
+                print("    - Authentication failure (check GOOGLE_REFRESH_TOKEN)")
+                print("    - Google Doc ID not accessible")
+                print("    - MCP server in bad state")
                 self._stop_server()
                 return self._fallback_save(content, "No tools available from MCP server")
             
