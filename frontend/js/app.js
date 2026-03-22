@@ -351,11 +351,6 @@ function renderSendFormModal() {
                             ${ROLES.map(role => `<option value="${role}">${role}</option>`).join('')}
                         </select>
                     </div>
-                    
-                    <div class="form-group">
-                        <label>Recipient</label>
-                        <div class="form-control" style="background: #f5f5f5; color: #666;">Nihal (nihalreddyb1997@gmail.com)</div>
-                    </div>
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" onclick="toggleSendForm(false)">Cancel</button>
