@@ -287,6 +287,9 @@ def run_full_pipeline(trigger_id, reviews_count, weeks, role, recipient_name, re
                 phase4_dir = str(BASE_DIR / 'backend' / 'Phase_4_MCP_Integration')
                 insights_file = str(BASE_DIR / 'backend' / 'Phase_3_Insight_Generation' / 'data' / f'insights_{role.lower().replace("/", "_")}.json')
                 
+                logger.info(f"Running Phase 4 from: {phase4_dir}")
+                logger.info(f"Insights file: {insights_file}")
+                
                 result = subprocess.run(
                     [
                         'python',
@@ -298,8 +301,16 @@ def run_full_pipeline(trigger_id, reviews_count, weeks, role, recipient_name, re
                     cwd=phase4_dir
                 )
                 
+                # Log stdout for debugging
+                logger.info(f"Phase 4 stdout: {result.stdout}")
+                if result.stderr:
+                    logger.info(f"Phase 4 stderr: {result.stderr}")
+                
                 if result.returncode != 0:
-                    raise Exception(f"Phase 4 subprocess failed: {result.stderr}")
+                    error_msg = result.stderr or result.stdout or "Unknown error"
+                    logger.error(f"Phase 4 failed with return code {result.returncode}")
+                    logger.error(f"Error details: {error_msg}")
+                    raise Exception(f"Phase 4 subprocess failed: {error_msg}")
                 
                 # Parse document URL from output
                 document_url = None
