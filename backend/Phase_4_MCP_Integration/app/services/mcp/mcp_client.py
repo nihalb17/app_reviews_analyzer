@@ -371,7 +371,7 @@ class RawMCPClient:
                     
                     try:
                         parsed = json.loads(json_str)
-                        print(f"[JSON] Parsed successfully: {list(parsed.keys())}")
+                        print(f"[JSON] Parsed: keys={list(parsed.keys())}, id={parsed.get('id')}, has_result={'result' in parsed}, has_error={'error' in parsed}")
                     except json.JSONDecodeError as e:
                         # Check if this might be truncated JSON (starts with { but doesn't end properly)
                         if json_str.strip().startswith('{') and not json_str.strip().endswith('}'):
@@ -380,7 +380,7 @@ class RawMCPClient:
                             # Try to accumulate more data
                             continue
                         # Not JSON, treat as log message
-                        print(f"[Server Log] {decoded_line}")
+                        print(f"[Server Log] {decoded_line[:200]}")
                         response_container["server_logs"].append(decoded_line)
                         continue
                     
@@ -390,11 +390,14 @@ class RawMCPClient:
                         if "method" in parsed and parsed["method"] == "notifications/message":
                             msg = parsed.get("params", {}).get("data", {}).get("message", "")
                             print(f"[Notification] {msg}")
+                        else:
+                            print(f"[JSON] No 'id' field, skipping: {list(parsed.keys())}")
                         continue
                     
                     # Check if this response matches our request ID
                     if parsed.get("id") == request_id:
-                        response_container["data"] = decoded_line
+                        print(f"[JSON] Match! Request ID {request_id} found")
+                        response_container["data"] = json_str
                         break
                     else:
                         # Response ID doesn't match, might be from a previous request
