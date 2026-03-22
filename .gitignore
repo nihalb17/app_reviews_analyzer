@@ -81,3 +81,26 @@ backend/backend_data/*.json
 
 # Node modules (if any)
 node_modules/
+
+# Node.js local installation (for MCP)
+backend/Phase_4_MCP_Integration/node/
+
+# Google OAuth credentials (secrets)
+gcp-oauth.keys.json
+*-oauth.keys.json
+
+# Phase 3.5 Fee Explainer generated files
+backend/Phase_3_5_Fee_Explainer/data/*.json
+!backend/Phase_3_5_Fee_Explainer/data/.gitkeep
+
+# Phase 4 MCP Integration generated files
+backend/Phase_4_MCP_Integration/data/*.txt
+backend/Phase_4_MCP_Integration/*.txt
+!backend/Phase_4_MCP_Integration/data/.gitkeep
+
+# Phase 5 Report Generation (renamed from Phase 4)
+backend/Phase_5_Report_Generation/data/*.json
+backend/Phase_5_Report_Generation/output/*.pdf
+backend/Phase_5_Report_Generation/output/*.html
+!backend/Phase_5_Report_Generation/data/.gitkeep
+!backend/Phase_5_Report_Generation/output/.gitkeep

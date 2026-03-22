@@ -4,11 +4,12 @@ FROM python:3.11-slim
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies for Playwright
+# Install system dependencies for Playwright and Node.js for MCP
 RUN apt-get update && apt-get install -y \
     wget \
     gnupg \
     ca-certificates \
+    curl \
     fonts-liberation \
     libasound2 \
     libatk-bridge2.0-0 \
@@ -31,6 +32,14 @@ RUN apt-get update && apt-get install -y \
     fonts-unifont \
     && rm -rf /var/lib/apt/lists/*
 
+# Install Node.js 18.x (required for MCP server)
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+# Verify Node.js and npm installation
+RUN node --version && npm --version
+
 # Copy requirements first for better caching
 COPY requirements.txt .
 
@@ -48,8 +57,11 @@ COPY . .
 RUN mkdir -p backend/Phase_1_Data_Ingestion_Layer/data \
     backend/Phase_2_Theme_Extraction_Classification/data \
     backend/Phase_3_Insight_Generation/data \
-    backend/Phase_4_Report_Generation/output \
-    backend/Phase_4_Report_Generation/data \
+    backend/Phase_3_5_Fee_Explainer/data \
+    backend/Phase_4_MCP_Integration/data \
+    backend/Phase_5_Report_Generation/output \
+    backend/Phase_5_Report_Generation/data \
+    backend/Phase_6_Email_Service/data \
     backend/backend_data
 
 # Set environment variables

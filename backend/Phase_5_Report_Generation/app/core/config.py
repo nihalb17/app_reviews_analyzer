@@ -21,7 +21,10 @@ class Settings(BaseSettings):
     
     # Paths
     TEMPLATES_DIR: str = "app/templates"
-    OUTPUT_DIR: str = "data"
+    OUTPUT_DIR: str = "output"
+    
+    # Google Doc for CTA link
+    GOOGLE_DOC_ID: str = ""
     
     class Config:
         env_file = "../../.env"

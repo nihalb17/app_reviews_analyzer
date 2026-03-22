@@ -41,8 +41,8 @@ PHASES = {
     1: (BASE_DIR / "Phase_1_Data_Ingestion_Layer" / "fetch_reviews_to_file.py").resolve(),
    2: (BASE_DIR / "Phase_2_Theme_Extraction_Classification" / "run_phase2.py").resolve(),
     3: (BASE_DIR / "Phase_3_Insight_Generation" / "run_phase3.py").resolve(),
-    4: (BASE_DIR / "Phase_4_Report_Generation" / "run_phase4.py").resolve(),
-    5: (BASE_DIR / "Phase_5_Email_Service" / "send_email.py").resolve()
+    4: (BASE_DIR / "Phase_5_Report_Generation" / "run_phase4.py").resolve(),
+    5: (BASE_DIR / "Phase_6_Email_Service" / "send_email.py").resolve()
 }
 
 # Data/Output Paths
@@ -50,8 +50,8 @@ DATA_PATHS = {
     "reviews": (BASE_DIR / "Phase_1_Data_Ingestion_Layer" / "data" / "groww_reviews.json").resolve(),
     "themes": lambda role: (BASE_DIR / "Phase_2_Theme_Extraction_Classification" / "data" / f"themes_{role.lower().replace('/', '_')}.json").resolve(),
     "insights": lambda role: (BASE_DIR / "Phase_3_Insight_Generation" / "data" / f"insights_{role.lower().replace('/', '_')}.json").resolve(),
-    "report_pdf": lambda role: (BASE_DIR / "Phase_4_Report_Generation" / "output" / f"groww_insights_{role.lower().replace('/', '_')}.pdf").resolve(),
-    "report_html": lambda role: (BASE_DIR / "Phase_4_Report_Generation" / "output" / f"groww_insights_{role.lower().replace('/', '_')}.html").resolve()
+    "report_pdf": lambda role: (BASE_DIR / "Phase_5_Report_Generation" / "output" / f"groww_insights_{role.lower().replace('/', '_')}.pdf").resolve(),
+    "report_html": lambda role: (BASE_DIR / "Phase_5_Report_Generation" / "output" / f"groww_insights_{role.lower().replace('/', '_')}.html").resolve()
 }
 
 def update_history(trigger_id, new_status, details=None):
@@ -149,7 +149,7 @@ def run_full_pipeline(trigger_id, reviews_count, weeks, role, recipient_name, re
             
         # Step 4: Report
         # Phase 4 script expects --insights-file and --output-dir
-        output_dir = BASE_DIR / "Phase_4_Report_Generation" / "output"
+        output_dir = BASE_DIR / "Phase_5_Report_Generation" / "output"
         success, output = run_script(PHASES[4], [
             "--role", role, 
             "--insights-file", str(insights_file),

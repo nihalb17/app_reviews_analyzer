@@ -52,8 +52,8 @@ UI_DIR = BASE_DIR / "frontend"
 app.mount("/css", StaticFiles(directory=str(UI_DIR / "css")), name="css")
 app.mount("/js", StaticFiles(directory=str(UI_DIR / "js")), name="js")
 
-# Mount Reports (Phase 4 Output)
-REPORTS_DIR = BASE_DIR / "backend" / "Phase_4_Report_Generation" / "output"
+# Mount Reports (Phase 5 Output)
+REPORTS_DIR = BASE_DIR / "backend" / "Phase_5_Report_Generation" / "output"
 if not REPORTS_DIR.exists():
     REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/reports", StaticFiles(directory=str(REPORTS_DIR)), name="reports")
@@ -236,6 +236,25 @@ async def view_pdf(trigger_id: str):
         
     from fastapi.responses import FileResponse
     return FileResponse(pdf_path, media_type='application/pdf', filename=pdf_filename)
+
+@app.get("/api/view-json/{trigger_id}")
+async def view_json(trigger_id: str):
+    """Get the Google Doc URL for viewing JSON data"""
+    if not HISTORY_FILE.exists():
+        raise HTTPException(status_code=404, detail="History not found")
+        
+    with open(HISTORY_FILE, 'r', encoding='utf-8') as f:
+        history = json.load(f)
+        
+    entry = next((e for e in history if e['id'] == trigger_id), None)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Trigger not found")
+    
+    google_doc_url = entry.get('google_doc_url')
+    if not google_doc_url:
+        raise HTTPException(status_code=404, detail="Google Doc URL not available yet. Wait for Phase 4 to complete.")
+        
+    return {"google_doc_url": google_doc_url}
 
 @app.post("/api/actions/view-pdf/{trigger_id}")
 async def rerun_for_view(trigger_id: str, background_tasks: BackgroundTasks):

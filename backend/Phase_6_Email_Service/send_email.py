@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Phase 5: Email Service
+Phase 6: Email Service
 Send report via email with HTML body and PDF attachment
 """
 import sys
@@ -33,13 +33,13 @@ def main():
     parser.add_argument(
         '--html-file',
         type=str,
-        default='..\\Phase_4_Report_Generation\\data\\groww_insights_ui_ux.html',
+        default='..\\Phase_5_Report_Generation\\output\\groww_insights_ui_ux.html',
         help='Path to HTML file for email body'
     )
     parser.add_argument(
         '--pdf-file',
         type=str,
-        default='..\\Phase_4_Report_Generation\\data\\groww_insights_ui_ux.pdf',
+        default='..\\Phase_5_Report_Generation\\output\\groww_insights_ui_ux.pdf',
         help='Path to PDF file to attach'
     )
     parser.add_argument(
@@ -51,7 +51,7 @@ def main():
     args = parser.parse_args()
     
     print("=" * 60)
-    print("PHASE 5: EMAIL SERVICE")
+    print("PHASE 6: EMAIL SERVICE")
     print("=" * 60)
     print()
     print(f"Role: {args.role}")

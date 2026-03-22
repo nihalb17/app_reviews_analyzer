@@ -57,9 +57,9 @@ jobs:
             -H "Authorization: Bearer ${API_TOKEN}" \
             -H "Content-Type: application/json" \
             -d '{
-              "weeks": 9,
-              "reviews_count": 1000,
-              "role": "Product",
+              "weeks": 5,
+              "reviews_count": 500,
+              "role": "Leadership",
               "recipient_name": "Nihal",
               "recipient_email": "nihalreddyb1997@gmail.com",
               "mode": "email",

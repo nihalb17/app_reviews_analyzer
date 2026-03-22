@@ -904,7 +904,25 @@ CREATE TABLE schedules (
 
 ---
 
-## 7. Security Considerations
+## 7. Environment Configuration
+
+### Required Environment Variables
+
+| Variable Name | Description | Used In |
+|--------------|-------------|---------|
+| `GROQ_API_KEY` | Groq API key for Phase 2 (Theme Extraction & Classification) | Phase 2 |
+| `GROQ_API_KEY_FEE_EXPLAINER` | Separate Groq API key for Fee Explainer generation | Phase 3.5 |
+| `GEMINI_API_KEY` | Gemini API key for Phase 3 (Insight Generation) | Phase 3 |
+| `RESEND_API_KEY` | Resend API key for email delivery | Phase 5 |
+| `GOOGLE_DOC_ID` | Google Doc ID for MCP integration | Phase 4 |
+| `DATABASE_URL` | PostgreSQL connection string | All Phases |
+| `REDIS_URL` | Redis connection string | All Phases |
+
+**Note**: The Fee Explainer feature uses a separate Groq API key (`GROQ_API_KEY_FEE_EXPLAINER`) to allow independent rate limit management and cost tracking.
+
+---
+
+## 8. Security Considerations
 
 1. **API Keys**: Store in environment variables, never commit
 2. **PII Handling**: Strip before storage, audit logs
@@ -915,7 +933,7 @@ CREATE TABLE schedules (
 
 ---
 
-## 8. Deployment Architecture
+## 9. Deployment Architecture
 
 ```
 ┌─────────────────┐
@@ -944,7 +962,7 @@ CREATE TABLE schedules (
 
 ---
 
-## 9. Monitoring & Logging
+## 10. Monitoring & Logging
 
 ### Metrics to Track:
 
@@ -964,7 +982,456 @@ CREATE TABLE schedules (
 
 ---
 
-## 10. Future Enhancements
+## 11. Fee Explainer Feature (Exit Load Information)
+
+### 11.1 Overview
+
+A new section added to email reports providing mutual fund exit load information to educate users about fee structures.
+
+### 11.2 Data Sources
+
+**Static Source (Exit Load Definition):**
+- URL: https://www.miraeassetmf.co.in/knowledge-center/exit-load-in-mutual-funds
+- Content: Definition and general information about exit loads
+- **Note**: This source is not scraped on each run; definition content is static
+
+**Dynamic Sources (Scheme-specific Exit Load Data):**
+| Fund Name | URL |
+|-----------|-----|
+| Axis Flexi Cap Fund | https://groww.in/mutual-funds/axis-flexi-cap-fund-direct-growth |
+| Nippon India Large Cap Fund | https://groww.in/mutual-funds/nippon-india-large-cap-fund-direct-growth |
+| ICICI Prudential Indo Asia Equity Fund | https://groww.in/mutual-funds/icici-prudential-indo-asia-equity-fund-direct-growth |
+
+### 11.3 Architecture Components
+
+#### New Phase: Phase 3.5 - Fee Explainer Generation
+
+**Objective**: Generate exit load bullet points from mutual fund scheme pages
+
+**Components:**
+
+1. **ExitLoadScraper** - Scrapes exit load data from Groww mutual fund pages
+2. **FeeExplainerGenerator** (Groq) - Generates 3-5 bullet points from scraped data
+3. **FeeExplainerRepository** - Stores generated fee explainer data
+
+**Data Flow:**
+
+```
+Pipeline Trigger → ExitLoadScraper → Raw Exit Load Data → 
+FeeExplainerGenerator (Gemini) → Bullet Points + Sources → 
+FeeExplainerRepository → Email Body Section
+```
+
+**LLM Strategy - Fee Explainer:**
+
+| Task | LLM | Model | Reason |
+|------|-----|-------|--------|
+| Bullet Point Generation | Groq | llama-3.1-70b | Cost-effective, fast structured output |
+
+**Fee Explainer Generation Prompt (Groq):**
+
+```
+Based on the following exit load data from mutual fund schemes, generate 3-5 bullet points that explain key aspects of exit loads.
+
+Exit Load Data:
+{scraped_exit_load_data}
+
+Requirements:
+1. Generate 3-5 bullet points (not more than 5)
+2. Each bullet point should be concise (1-2 sentences)
+3. Cover both scheme-specific and general exit load information
+4. Focus on what users should know about exit charges
+5. Include practical implications for investors
+
+Output JSON format:
+{
+  "bullet_points": [
+    {
+      "point": "string",
+      "type": "scheme_specific|general"
+    }
+  ],
+  "sources": [
+    {
+      "name": "string",
+      "url": "string"
+    }
+  ],
+  "generated_at": "ISO8601 timestamp"
+}
+```
+
+**Output Schema:**
+
+```json
+{
+  "fee_explainer": {
+    "bullet_points": [
+      {
+        "point": "string",
+        "type": "scheme_specific|general"
+      }
+    ],
+    "sources": [
+      {
+        "name": "string",
+        "url": "string"
+      }
+    ],
+    "last_checked": "ISO8601 timestamp"
+  }
+}
+```
+
+#### Updated Phase 5: Email Service (with Fee Explainer)
+
+**Objective**: Generate exit load bullet points from mutual fund scheme pages
+
+**Components:**
+
+1. **ExitLoadScraper** - Scrapes exit load data from Groww mutual fund pages
+2. **FeeExplainerGenerator** (Groq) - Generates 3-5 bullet points from scraped data
+3. **FeeExplainerRepository** - Stores generated fee explainer data
+
+**Data Flow:**
+
+```
+Pipeline Trigger → ExitLoadScraper → Raw Exit Load Data → 
+FeeExplainerGenerator (Groq) → Bullet Points + Sources → 
+FeeExplainerRepository → Email Body Section
+```
+
+**LLM Strategy - Fee Explainer:**
+
+| Task | LLM | Model | Reason |
+|------|-----|-------|--------|
+| Bullet Point Generation | Groq | llama-3.1-70b | Cost-effective, fast structured output |
+
+**Fee Explainer Generation Prompt (Groq):**
+
+```
+Based on the following exit load data from mutual fund schemes, generate 3-5 bullet points that explain key aspects of exit loads.
+
+Exit Load Data:
+{scraped_exit_load_data}
+
+Requirements:
+1. Generate 3-5 bullet points (not more than 5)
+2. Each bullet point should be concise (1-2 sentences)
+3. Cover both scheme-specific and general exit load information
+4. Focus on what users should know about exit charges
+5. Include practical implications for investors
+
+Output JSON format:
+{
+  "bullet_points": [
+    {
+      "point": "string",
+      "type": "scheme_specific|general"
+    }
+  ],
+  "sources": [
+    {
+      "name": "string",
+      "url": "string"
+    }
+  ],
+  "generated_at": "ISO8601 timestamp"
+}
+```
+
+**Output Schema:**
+
+```json
+{
+  "fee_explainer": {
+    "bullet_points": [
+      {
+        "point": "string",
+        "type": "scheme_specific|general"
+      }
+    ],
+    "sources": [
+      {
+        "name": "string",
+        "url": "string"
+      }
+    ],
+    "last_checked": "ISO8601 timestamp"
+  }
+}
+```
+
+---
+
+#### New Phase 4: MCP Integration (Google Doc Update)
+
+**Objective**: Append combined JSON data to Google Doc via MCP
+
+**Components:**
+
+1. **MCPClient** - Handles MCP communication with Google Docs
+2. **JSONDataFormatter** - Formats reviews and fee explainer JSON for Google Doc
+3. **GoogleDocUpdater** - Appends formatted content to specified Google Doc
+
+**Input Data:**
+- Reviews JSON (from Phase 3 output)
+- Fee Explainer JSON (from Phase 3.5 output)
+
+**Process Flow:**
+
+```
+Pipeline Trigger → Load Reviews JSON → Load Fee Explainer JSON →
+Format Combined Document → MCP Call to Google Doc → Get Doc URL →
+Pass URL to Phase 5 for Email Body
+```
+
+**Google Doc Structure:**
+
+```
+Document: Groww Reviews Analysis - Raw Data
+
+═══════════════════════════════════════════════════════════════
+Section 1: Reviews Data (Phase 3)
+Generated: {timestamp}
+
+{formatted_reviews_json}
+
+═══════════════════════════════════════════════════════════════
+Section 2: Fee Explainer Data (Phase 3.5)
+Generated: {timestamp}
+
+{formatted_fee_explainer_json}
+
+═══════════════════════════════════════════════════════════════
+```
+
+**Configuration:**
+
+| Variable | Description |
+|----------|-------------|
+| `GOOGLE_DOC_ID` | Google Doc ID (provided separately) |
+| `MCP_SERVER_URL` | MCP server endpoint (if external) |
+
+**Output:**
+- Google Doc URL for "View JSON Data" button in email
+- Combined JSON persisted in Google Doc for reference
+
+---
+
+#### Updated Phase 5: Report Generation (with Fee Explainer & Google Doc Link)
+
+**Objective**: Generate email HTML with Fee Explainer section and Google Doc link
+
+**Components:**
+
+1. **ReportBuilder** - Assembles report data including Fee Explainer
+2. **PDFGenerator** - Creates PDF (unchanged) and email HTML (updated)
+3. **TemplateEngine** - Jinja2 templates with Fee Explainer section
+
+**Input Data:**
+- Insights from Phase 3
+- Fee Explainer data from Phase 3.5
+- Google Doc URL from Phase 4
+
+**Changes:**
+- `_generate_email_html()` includes Fee Explainer section
+- "View JSON Data" button links to Google Doc URL from Phase 4
+- PDF generation remains unchanged (no Fee Explainer)
+
+**Email HTML Template Changes:**
+
+The `_generate_email_html()` method in `pdf_generator.py` is updated to include:
+
+**New Section Added (after Strategic Recommendations, before Footer):**
+
+```html
+<!-- Fee Explainer Section -->
+<tr>
+    <td style="padding: 0 24px 24px 24px; background: #F0FDF4;">
+        <table cellpadding="0" cellspacing="0" border="0" width="100%">
+            <tr>
+                <td style="padding: 20px;">
+                    <!-- Header with Icon and Title -->
+                    <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                        <tr>
+                            <td style="font-size: 16px; font-weight: 700; color: #1F2937;">
+                                <span style="margin-right: 8px;">💡</span>Exit Load — Fee Explainer
+                            </td>
+                            <td align="right" style="font-size: 11px; color: #6B7280;">
+                                LAST CHECKED<br/>
+                                {last_checked_timestamp}
+                            </td>
+                        </tr>
+                    </table>
+                    <p style="font-size: 12px; color: #6B7280; margin: 8px 0 16px 0;">
+                        Key points your users should know about exit load charges
+                    </p>
+                    
+                    <!-- Bullet Points -->
+                    {fee_explainer_bullets}
+                    
+                    <!-- Sources -->
+                    <p style="font-size: 10px; color: #6B7280; margin: 16px 0 8px 0; text-transform: uppercase; font-weight: 600;">Sources</p>
+                    {fee_explainer_sources}
+                </td>
+            </tr>
+        </table>
+    </td>
+</tr>
+
+<!-- View JSON Data Button -->
+<tr>
+    <td style="padding: 0 24px 24px 24px; text-align: center;">
+        <a href="{google_doc_link}" style="background: #00D09C; color: #FFFFFF; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600; display: inline-block;">
+            📄 View JSON Data
+        </a>
+    </td>
+</tr>
+```
+
+**PDF Output:**
+- PDF generation remains unchanged
+- Fee Explainer section is NOT included in PDF attachment
+- Only email HTML body includes the new section
+
+#### Updated Phase 5: Email Service (with Fee Explainer)
+
+**Email Assembly:**
+
+Phase 5 receives the updated HTML from Phase 4 and handles:
+
+**Section Layout:**
+- Header: "Exit Load — Fee Explainer" with lightbulb icon
+- Subtitle: "Key points your users should know about exit load charges"
+- Last Checked: Timestamp (IST format: "09 Mar 2026, 2:45 PM")
+- Bullet Points: 3-5 numbered points about exit loads
+- Sources: List of source URLs with clickable links
+
+**Email Template Update:**
+
+```
+Subject: Your Groww Reviews Insights Report - {Role}
+
+Body (HTML):
+- Greeting (Hi {ReceiverName})
+- Report header with metadata
+- Top Themes section (same as PDF)
+- Actionable Insights section (same as PDF)
+- [NEW] Fee Explainer section (Exit Load information)
+- [NEW] View JSON Data button/link (links to Google Doc from Phase 4)
+- Footer
+
+Attachment: PDF with identical content (Fee Explainer NOT in PDF)
+```
+
+---
+
+#### Phase 6: Email Service
+
+**Objective**: Send email with updated HTML body and PDF attachment
+
+**Changes:** None - receives updated HTML from Phase 5 and sends as-is
+
+**JSON Data View:**
+
+A "View JSON Data" button in the email body opens a Google Doc link containing both JSON datasets:
+
+**Google Doc Structure:**
+```
+Document Title: Groww Reviews Analysis - Raw Data
+
+Section 1: Reviews Data (from Phase 3)
+{
+  "insights": [...],
+  "themes": [...],
+  "examples": [...]
+}
+
+Section 2: Fee Explainer Data (from Phase 3.5)
+{
+  "bullet_points": [...],
+  "sources": [...],
+  "last_checked": "..."
+}
+```
+
+**Note**: The JSON data is appended to a Google Doc via MCP (Phase 4). The Google Doc link will be provided separately.
+
+### 11.4 Data Storage
+
+**File Storage:**
+- Fee explainer JSON: `backend/Phase_3_Insight_Generation/data/fee_explainer.json`
+- Updated on every pipeline run with fresh scraped data
+
+**Schema:**
+
+```json
+{
+  "bullet_points": [
+    {
+      "point": "Exit load is a fee charged when units are redeemed before a specified holding period",
+      "type": "general"
+    },
+    {
+      "point": "Axis Flexi Cap Fund charges 1% exit load if redeemed within 1 year",
+      "type": "scheme_specific"
+    }
+  ],
+  "sources": [
+    {
+      "name": "Axis Flexi Cap Fund",
+      "url": "https://groww.in/mutual-funds/axis-flexi-cap-fund-direct-growth"
+    },
+    {
+      "name": "Nippon India Large Cap Fund",
+      "url": "https://groww.in/mutual-funds/nippon-india-large-cap-fund-direct-growth"
+    },
+    {
+      "name": "ICICI Prudential Indo Asia Equity Fund",
+      "url": "https://groww.in/mutual-funds/icici-prudential-indo-asia-equity-fund-direct-growth"
+    },
+    {
+      "name": "Mirae Asset - Exit Load Guide",
+      "url": "https://www.miraeassetmf.co.in/knowledge-center/exit-load-in-mutual-funds"
+    }
+  ],
+  "last_checked": "2026-03-21T14:45:00+05:30"
+}
+```
+
+### 11.5 Pipeline Integration
+
+**Execution Flow:**
+
+| Phase | Activity | Fee Explainer Impact |
+|-------|----------|---------------------|
+| Phase 1 | Data Ingestion | No change |
+| Phase 2 | Theme Extraction | No change |
+| Phase 3 | Insight Generation | No change |
+| Phase 3.5 | Fee Explainer Generation | **NEW**: Scrape MF pages, generate bullets |
+| Phase 4 | MCP Integration | **NEW**: Append combined JSON to Google Doc via MCP |
+| Phase 5 | Report Generation | **UPDATED**: Email HTML template includes Fee Explainer section + Google Doc link. PDF unchanged. |
+| Phase 6 | Email Service | Sends email with updated HTML body + PDF attachment |
+
+### 11.6 Test Cases for Fee Explainer
+
+| Test ID | Description | Expected Result |
+|---------|-------------|-----------------|
+| FE-T01 | Scrape exit load from Axis Flexi Cap Fund | Exit load data extracted |
+| FE-T02 | Scrape exit load from Nippon India Large Cap Fund | Exit load data extracted |
+| FE-T03 | Scrape exit load from ICICI Prudential Fund | Exit load data extracted |
+| FE-T04 | Generate bullet points from scraped data | 3-5 relevant bullets generated |
+| FE-T05 | Gemini API failure during bullet generation | Retry or fallback handling |
+| FE-T06 | Invalid HTML structure on source page | Graceful error handling |
+| FE-T07 | Fee explainer JSON structure validation | Valid JSON with all required fields |
+| FE-T08 | Email rendering with fee explainer section | Section displays correctly |
+| FE-T09 | Timestamp format in email | IST format: "09 Mar 2026, 2:45 PM" |
+| FE-T10 | Sources links in email | All 4 sources clickable |
+
+---
+
+## 12. Future Enhancements
 
 1. Multi-language support (Hindi, etc.)
 2. Sentiment trend analysis over time
@@ -977,21 +1444,23 @@ CREATE TABLE schedules (
 
 ---
 
-## 11. Implementation Phases Priority
+## 13. Implementation Phases Priority
 
 
-| Phase   | Priority | Dependencies |
-| ------- | -------- | ------------ |
-| Phase 1 | P0       | None         |
-| Phase 2 | P0       | Phase 1      |
-| Phase 3 | P0       | Phase 2      |
-| Phase 4 | P0       | Phase 3      |
-| Phase 5 | P0       | Phase 4      |
-| Phase 6 | P1       | Phase 1-5    |
-| Phase 7 | P2       | Phase 1-6    |
+| Phase     | Priority | Dependencies |
+| --------- | -------- | ------------ |
+| Phase 1   | P0       | None         |
+| Phase 2   | P0       | Phase 1      |
+| Phase 3   | P0       | Phase 2      |
+| Phase 3.5 | P0       | Phase 3      |
+| Phase 4   | P0       | Phase 3, 3.5 |
+| Phase 5   | P0       | Phase 4      |
+| Phase 6   | P0       | Phase 5      |
+| Phase 7   | P1       | Phase 1-6    |
+| Phase 8   | P2       | Phase 1-7    |
 
 
 ---
 
-*Document Version: 2.0*
-*Last Updated: March 9, 2026*
+*Document Version: 2.1*
+*Last Updated: March 21, 2026*

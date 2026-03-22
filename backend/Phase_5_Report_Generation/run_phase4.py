@@ -47,7 +47,7 @@ def main():
     parser.add_argument(
         '--output-dir',
         type=str,
-        default='data',
+        default='output',
         help='Output directory for generated reports'
     )
     parser.add_argument(

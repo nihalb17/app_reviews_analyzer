@@ -76,10 +76,23 @@ def run_full_pipeline(trigger_id, reviews_count, weeks, role, recipient_name, re
         'Themes Created': 2,  # Themes Created(Failed) means Phase 2 theme extraction failed, retry Phase 2
         'Reviews Classified': 2,  # Reviews Classified(Failed) means Phase 2 classification failed, retry Phase 2
         'Insight Generation': 3,  # Insight Generation(Failed) means Phase 3 failed, retry Phase 3
-        'Report Generated': 4,  # Report Generated(Failed) means Phase 4 failed, retry Phase 4
-        'Mail Sent': 5,  # Mail Sent(Failed) means Phase 5 failed, retry Phase 5
+        'Fee Explainer Generated': 4,  # Fee Explainer Generated(Failed) means Phase 3.5 failed, retry Phase 3.5
+        'Google Doc Updated': 5,  # Google Doc Updated(Failed) means Phase 4 failed, retry Phase 4
+        'Report Generated': 6,  # Report Generated(Failed) means Phase 5 failed, retry Phase 5
+        'Mail Sent': 7,  # Mail Sent(Failed) means Phase 6 failed, retry Phase 6
     }
-    start_phase = status_to_phase.get(resume_from, 1)
+    
+    # Handle failed statuses - they should map to the same phase as their non-failed counterparts
+    if resume_from and '(Failed)' in resume_from:
+        # Extract the base status by removing '(Failed)' suffix
+        base_status = resume_from.replace('(Failed)', '')
+        if base_status in status_to_phase:
+            start_phase = status_to_phase[base_status]
+        else:
+            start_phase = status_to_phase.get(resume_from, 1)
+    else:
+        start_phase = status_to_phase.get(resume_from, 1)
+    
     logger.info(f"Resuming from phase {start_phase}")
     
     try:
@@ -93,8 +106,8 @@ def run_full_pipeline(trigger_id, reviews_count, weeks, role, recipient_name, re
         phase1_path = str(BASE_DIR / 'backend' / 'Phase_1_Data_Ingestion_Layer')
         phase2_path = str(BASE_DIR / 'backend' / 'Phase_2_Theme_Extraction_Classification')
         phase3_path = str(BASE_DIR / 'backend' / 'Phase_3_Insight_Generation')
-        phase4_path = str(BASE_DIR / 'backend' / 'Phase_4_Report_Generation')
-        phase5_path = str(BASE_DIR / 'backend' / 'Phase_5_Email_Service')
+        phase4_path = str(BASE_DIR / 'backend' / 'Phase_5_Report_Generation')
+        phase5_path = str(BASE_DIR / 'backend' / 'Phase_6_Email_Service')
         
         # Insert at beginning of path to ensure proper module resolution
         for p in [phase5_path, phase4_path, phase3_path, phase2_path, phase1_path]:
@@ -236,25 +249,49 @@ def run_full_pipeline(trigger_id, reviews_count, weeks, role, recipient_name, re
         else:
             logger.info("Skipping Phase 3 (using existing data)")
         
-        # Phase 4: Report Generation
+        # Phase 3.5: Fee Explainer
         if start_phase <= 4:
-            logger.info("Phase 4: Report Generation")
+            logger.info("Phase 3.5: Fee Explainer")
             try:
-                # Run Phase 4 in a subprocess to avoid import conflicts
-                phase4_dir = str(BASE_DIR / 'backend' / 'Phase_4_Report_Generation')
-                insights_file = str(BASE_DIR / 'backend' / 'Phase_3_Insight_Generation' / 'data' / f'insights_{role.lower().replace("/", "_")}.json')
-                reviews_file = str(BASE_DIR / 'backend' / 'Phase_1_Data_Ingestion_Layer' / 'data' / 'groww_reviews.json')
-                safe_role = role.lower().replace('/', '_')
-                output_file = str(BASE_DIR / 'backend' / 'Phase_4_Report_Generation' / 'output' / f'groww_insights_{safe_role}.pdf')
+                # Run Phase 3.5 in a subprocess
+                phase3_5_dir = str(BASE_DIR / 'backend' / 'Phase_3_5_Fee_Explainer')
                 
                 result = subprocess.run(
                     [
                         'python',
-                        str(BASE_DIR / 'backend' / 'Phase_4_Report_Generation' / 'run_phase4.py'),
-                        '--insights-file', insights_file,
-                        '--reviews-file', reviews_file,
-                        '--role', role,
-                        '--output-dir', 'output'
+                        str(BASE_DIR / 'backend' / 'Phase_3_5_Fee_Explainer' / 'run_phase35.py')
+                    ],
+                    capture_output=True,
+                    text=True,
+                    cwd=phase3_5_dir
+                )
+                
+                if result.returncode != 0:
+                    raise Exception(f"Phase 3.5 subprocess failed: {result.stderr}")
+                
+                logger.info(f"Phase 3.5 completed successfully")
+                update_history(trigger_id, "Fee Explainer Generated")
+                
+            except Exception as e:
+                logger.error(f"Phase 3.5 failed: {e}")
+                update_history(trigger_id, "Fee Explainer Generated(Failed)", {'error': str(e)})
+                return {'status': 'failed', 'phase': 3.5, 'error': str(e)}
+        else:
+            logger.info("Skipping Phase 3.5 (using existing data)")
+        
+        # Phase 4: MCP Integration (Google Docs)
+        if start_phase <= 5:
+            logger.info("Phase 4: MCP Integration")
+            try:
+                # Run Phase 4 in a subprocess
+                phase4_dir = str(BASE_DIR / 'backend' / 'Phase_4_MCP_Integration')
+                insights_file = str(BASE_DIR / 'backend' / 'Phase_3_Insight_Generation' / 'data' / f'insights_{role.lower().replace("/", "_")}.json')
+                
+                result = subprocess.run(
+                    [
+                        'python',
+                        str(BASE_DIR / 'backend' / 'Phase_4_MCP_Integration' / 'run_phase4.py'),
+                        '--role', role
                     ],
                     capture_output=True,
                     text=True,
@@ -264,31 +301,76 @@ def run_full_pipeline(trigger_id, reviews_count, weeks, role, recipient_name, re
                 if result.returncode != 0:
                     raise Exception(f"Phase 4 subprocess failed: {result.stderr}")
                 
+                # Parse document URL from output
+                document_url = None
+                for line in result.stdout.split('\n'):
+                    if 'Document URL:' in line:
+                        document_url = line.split('Document URL:')[1].strip()
+                        break
+                
                 logger.info(f"Phase 4 completed successfully")
-                update_history(trigger_id, "Report Generated", {'pdf_path': output_file})
+                update_history(trigger_id, "Google Doc Updated", {'google_doc_url': document_url})
                 
             except Exception as e:
                 logger.error(f"Phase 4 failed: {e}")
-                update_history(trigger_id, "Report Generated(Failed)", {'error': str(e)})
+                update_history(trigger_id, "Google Doc Updated(Failed)", {'error': str(e)})
                 return {'status': 'failed', 'phase': 4, 'error': str(e)}
         else:
             logger.info("Skipping Phase 4 (using existing data)")
         
-        # Phase 5: Email Service (only if mode is 'email')
+        # Phase 5: Report Generation
+        if start_phase <= 6:
+            logger.info("Phase 5: Report Generation")
+            try:
+                # Run Phase 5 in a subprocess to avoid import conflicts
+                phase5_dir = str(BASE_DIR / 'backend' / 'Phase_5_Report_Generation')
+                insights_file = str(BASE_DIR / 'backend' / 'Phase_3_Insight_Generation' / 'data' / f'insights_{role.lower().replace("/", "_")}.json')
+                reviews_file = str(BASE_DIR / 'backend' / 'Phase_1_Data_Ingestion_Layer' / 'data' / 'groww_reviews.json')
+                safe_role = role.lower().replace('/', '_')
+                output_file = str(BASE_DIR / 'backend' / 'Phase_5_Report_Generation' / 'output' / f'groww_insights_{safe_role}.pdf')
+                
+                result = subprocess.run(
+                    [
+                        'python',
+                        str(BASE_DIR / 'backend' / 'Phase_5_Report_Generation' / 'run_phase4.py'),
+                        '--insights-file', insights_file,
+                        '--reviews-file', reviews_file,
+                        '--role', role,
+                        '--output-dir', 'output'
+                    ],
+                    capture_output=True,
+                    text=True,
+                    cwd=phase5_dir
+                )
+                
+                if result.returncode != 0:
+                    raise Exception(f"Phase 5 subprocess failed: {result.stderr}")
+                
+                logger.info(f"Phase 5 completed successfully")
+                update_history(trigger_id, "Report Generated", {'pdf_path': output_file})
+                
+            except Exception as e:
+                logger.error(f"Phase 5 failed: {e}")
+                update_history(trigger_id, "Report Generated(Failed)", {'error': str(e)})
+                return {'status': 'failed', 'phase': 5, 'error': str(e)}
+        else:
+            logger.info("Skipping Phase 5 (using existing data)")
+        
+        # Phase 6: Email Service (only if mode is 'email')
         if mode == "email":
-            if start_phase <= 5:
-                logger.info("Phase 5: Email Service")
+            if start_phase <= 7:
+                logger.info("Phase 6: Email Service")
                 try:
-                    # Run Phase 5 in a subprocess to avoid import conflicts
-                    phase5_dir = str(BASE_DIR / 'backend' / 'Phase_5_Email_Service')
+                    # Run Phase 6 in a subprocess to avoid import conflicts
+                    phase6_dir = str(BASE_DIR / 'backend' / 'Phase_6_Email_Service')
                     safe_role = role.lower().replace('/', '_')
-                    pdf_path = str(BASE_DIR / 'backend' / 'Phase_4_Report_Generation' / 'output' / f'groww_insights_{safe_role}.pdf')
-                    html_path = str(BASE_DIR / 'backend' / 'Phase_4_Report_Generation' / 'output' / f'groww_insights_{safe_role}.html')
+                    pdf_path = str(BASE_DIR / 'backend' / 'Phase_5_Report_Generation' / 'output' / f'groww_insights_{safe_role}.pdf')
+                    html_path = str(BASE_DIR / 'backend' / 'Phase_5_Report_Generation' / 'output' / f'groww_insights_{safe_role}.html')
                     
                     result = subprocess.run(
                         [
                             'python',
-                            str(BASE_DIR / 'backend' / 'Phase_5_Email_Service' / 'send_email.py'),
+                            str(BASE_DIR / 'backend' / 'Phase_6_Email_Service' / 'send_email.py'),
                             '--role', role,
                             '--recipient', recipient_email,
                             '--html-file', html_path,
@@ -297,24 +379,24 @@ def run_full_pipeline(trigger_id, reviews_count, weeks, role, recipient_name, re
                         ],
                         capture_output=True,
                         text=True,
-                        cwd=phase5_dir
+                        cwd=phase6_dir
                     )
                     
                     if result.returncode != 0:
-                        raise Exception(f"Phase 5 subprocess failed: {result.stderr}")
+                        raise Exception(f"Phase 6 subprocess failed: {result.stderr}")
                     
-                    logger.info(f"Phase 5 completed successfully")
+                    logger.info(f"Phase 6 completed successfully")
                     update_history(trigger_id, "Mail Sent")
                     
                 except Exception as e:
-                    logger.error(f"Phase 5 failed: {e}")
+                    logger.error(f"Phase 6 failed: {e}")
                     update_history(trigger_id, "Mail Sent(Failed)", {'error': str(e)})
-                    return {'status': 'failed', 'phase': 5, 'error': str(e)}
+                    return {'status': 'failed', 'phase': 6, 'error': str(e)}
             else:
-                logger.info("Skipping Phase 5 (using existing data)")
+                logger.info("Skipping Phase 6 (using existing data)")
         else:
-            logger.info("Skipping Phase 5 (Preview Mode)")
-            if start_phase <= 4:
+            logger.info("Skipping Phase 6 (Preview Mode)")
+            if start_phase <= 6:
                 update_history(trigger_id, "Report Generated")
         
         logger.info(f"Pipeline completed successfully for trigger {trigger_id}")

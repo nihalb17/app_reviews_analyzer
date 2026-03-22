@@ -576,7 +576,7 @@ class PDFGenerator:
 '''
     
     def _generate_email_html(self, report_data: Dict[str, Any]) -> str:
-        """Generate email-friendly HTML with card-based layout"""
+        """Generate email-friendly HTML with card-based layout including Fee Explainer"""
         colors = self.COLORS
         company_name = report_data.get('company_name', 'Groww')
         role = report_data.get('role', 'UI/UX')
@@ -584,6 +584,7 @@ class PDFGenerator:
         executive_summary = report_data.get('executive_summary', '')
         themes = report_data.get('themes', [])[:5]  # Top 5 themes
         actionable_items = report_data.get('actionable_items', [])[:5]  # Top 5 items
+        fee_explainer = report_data.get('fee_explainer', {})
         
         # Sentiment colors
         sentiment_colors = {
@@ -657,6 +658,115 @@ class PDFGenerator:
             <span style="color: #374151;">{title}</span>
         </div>'''
         
+        # Build Fee Explainer HTML section
+        fee_explainer_html = ""
+        if fee_explainer and fee_explainer.get('bullet_points'):
+            bullet_points = fee_explainer.get('bullet_points', [])
+            sources = fee_explainer.get('sources', [])
+            last_checked = fee_explainer.get('last_checked', '')
+            
+            # Format last_checked time in IST (stored as naive IST datetime)
+            last_checked_display = ""
+            if last_checked:
+                try:
+                    from datetime import datetime
+                    # Parse ISO format (naive IST datetime stored directly)
+                    dt = datetime.fromisoformat(last_checked.replace('Z', '+00:00'))
+                    # Format as DD-MM-YYYY HH:MM (24-hour format)
+                    last_checked_display = dt.strftime("%d-%m-%Y %H:%M")
+                except:
+                    last_checked_display = last_checked
+            
+            # Build numbered bullet points HTML
+            bullets_html = ""
+            for i, bp in enumerate(bullet_points, 1):
+                point_text = bp.get('point', '')
+                # Numbered with green circle
+                bullets_html += f'''
+                <tr>
+                    <td style="padding: 8px 0; font-size: 12px; color: #1F2937; line-height: 1.6;">
+                        <table cellpadding="0" cellspacing="0" border="0">
+                            <tr>
+                                <td style="width: 24px; vertical-align: top;">
+                                    <span style="display: inline-block; width: 20px; height: 20px; background: {colors['primary']}; color: #FFFFFF; border-radius: 50%; text-align: center; line-height: 20px; font-size: 11px; font-weight: 600;">{i}</span>
+                                </td>
+                                <td style="padding-left: 8px;">{point_text}</td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>'''
+            
+            # Build sources HTML
+            sources_html = ""
+            if sources:
+                sources_items = ""
+                for source in sources[:3]:  # Max 3 sources
+                    name = source.get('name', '')
+                    url = source.get('url', '')
+                    if name and url:
+                        sources_items += f'<a href="{url}" style="color: #1B5E20; text-decoration: underline; margin-right: 16px; font-size: 11px;">{name}</a>'
+                if sources_items:
+                    sources_html = f'''
+                <tr>
+                    <td style="padding-top: 16px; border-top: 1px solid #C8E6C9;">
+                        <span style="font-size: 9px; color: #2E7D32; text-transform: uppercase; font-weight: 600;">Sources:</span>
+                        <div style="margin-top: 6px;">{sources_items}</div>
+                    </td>
+                </tr>'''
+            
+            # Build CTA button HTML
+            google_doc_id = settings.GOOGLE_DOC_ID
+            cta_button_html = ""
+            if google_doc_id:
+                doc_url = f"https://docs.google.com/document/d/{google_doc_id}/edit"
+                cta_button_html = f'''
+                <tr>
+                    <td style="padding-top: 20px; text-align: center;">
+                        <a href="{doc_url}" style="display: inline-block; background: {colors['primary']}; color: #FFFFFF; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600;">
+                            📄 View JSON Data
+                        </a>
+                    </td>
+                </tr>'''
+            
+            # Build last checked HTML for above sources (italics, small font, single line)
+            # Format is now "22-03-2026 09:41" (DD-MM-YYYY HH:MM)
+            last_checked_line = ""
+            if last_checked_display:
+                last_checked_line = f'''
+                <tr>
+                    <td style="padding-top: 12px; padding-bottom: 8px;">
+                        <span style="font-size: 9px; color: #2E7D32; font-style: italic;">Last Checked: {last_checked_display}</span>
+                    </td>
+                </tr>'''
+
+            fee_explainer_html = f'''
+                    <!-- Fee Explainer Section -->
+                    <tr>
+                        <td style="padding: 0 24px 24px 24px;">
+                            <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background: #E8F5E9; border-radius: 8px; overflow: hidden;">
+                                <tr>
+                                    <td style="padding: 20px;">
+                                        <!-- Header with title -->
+                                        <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                                            <tr>
+                                                <td style="border-left: 3px solid {colors['primary']}; padding-left: 12px;">
+                                                    <div style="font-size: 16px; font-weight: 700; color: #1B5E20;">Exit Load — Fee Explainer</div>
+                                                    <div style="font-size: 11px; color: #2E7D32; margin-top: 4px;">Key points your users should know about mutual fund exit loads</div>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top: 16px;">
+                                            {bullets_html}
+                                            {last_checked_line}
+                                            {sources_html}
+                                            {cta_button_html}
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>'''
+        
         return f'''<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -727,6 +837,8 @@ class PDFGenerator:
                             {strategic_html}
                         </td>
                     </tr>
+                    
+                    {fee_explainer_html}
                     
                     <!-- Footer -->
                     <tr>

@@ -2,6 +2,7 @@
 Report Builder Service
 
 Assembles report data from Phase 3 insights for PDF generation.
+Includes Fee Explainer data from Phase 3.5 for email body.
 """
 
 import json
@@ -26,6 +27,9 @@ def format_ist_datetime(dt: datetime = None) -> str:
 class ReportBuilder:
     """Builds report data structure from insights"""
     
+    # Default path to Fee Explainer data
+    DEFAULT_FEE_EXPLAINER_PATH = Path(__file__).parent.parent.parent.parent.parent / "Phase_3_5_Fee_Explainer" / "data" / "fee_explainer.json"
+    
     def __init__(self):
         self.report_data = {}
     
@@ -33,7 +37,8 @@ class ReportBuilder:
         self,
         role: str,
         insights_file: str,
-        reviews_file: Optional[str] = None
+        reviews_file: Optional[str] = None,
+        fee_explainer_file: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Build complete report data from insights file
@@ -42,6 +47,7 @@ class ReportBuilder:
             role: Target role (Product, Support, UI/UX, Leadership)
             insights_file: Path to Phase 3 insights JSON file
             reviews_file: Optional path to reviews file for metadata
+            fee_explainer_file: Optional path to fee explainer JSON file
             
         Returns:
             Complete report data dictionary
@@ -49,6 +55,9 @@ class ReportBuilder:
         # Load insights
         with open(insights_file, 'r', encoding='utf-8') as f:
             insights = json.load(f)
+        
+        # Load fee explainer data
+        fee_explainer_data = self._load_fee_explainer(fee_explainer_file)
         
         # Get metadata from reviews if available
         metadata = self._extract_metadata(reviews_file)
@@ -69,10 +78,42 @@ class ReportBuilder:
             'executive_summary': insights.get('summary', ''),
             'themes': self._process_themes(insights.get('themes', [])),
             'top_issues': insights.get('top_issues', []),
-            'recommendations': insights.get('recommendations', [])
+            'recommendations': insights.get('recommendations', []),
+            # Fee Explainer data for email body (NOT included in PDF)
+            'fee_explainer': fee_explainer_data
         }
         
         return report_data
+    
+    def _load_fee_explainer(self, fee_explainer_file: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Load fee explainer data from Phase 3.5
+        
+        Args:
+            fee_explainer_file: Optional custom path to fee explainer JSON
+            
+        Returns:
+            Fee explainer data dictionary or empty dict if not found
+        """
+        # Determine file path
+        if fee_explainer_file:
+            file_path = Path(fee_explainer_file)
+        else:
+            file_path = self.DEFAULT_FEE_EXPLAINER_PATH
+        
+        if not file_path.exists():
+            print(f"Warning: Fee explainer file not found: {file_path}")
+            return {}
+        
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            # Return the fee_explainer section
+            return data.get('fee_explainer', data)
+        except Exception as e:
+            print(f"Warning: Could not load fee explainer data: {e}")
+            return {}
     
     def _extract_metadata(self, reviews_file: Optional[str]) -> Dict[str, Any]:
         """Extract metadata from reviews file"""

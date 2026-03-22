@@ -9,6 +9,8 @@ const STATUS_STAGES = [
     "Themes Created",
     "Reviews Classified",
     "Insight Generation",
+    "Fee Explainer Generated",
+    "Google Doc Updated",
     "Report Generated",
     "Mail Sent"
 ];
@@ -19,8 +21,10 @@ const STATUS_PRIORITY = {
     "Themes Created": 2,
     "Reviews Classified": 3,
     "Insight Generation": 4,
-    "Report Generated": 5,
-    "Mail Sent": 6
+    "Fee Explainer Generated": 5,
+    "Google Doc Updated": 6,
+    "Report Generated": 7,
+    "Mail Sent": 8
 };
 
 const ROLES = ["Product", "Support", "UI/UX", "Leadership"];
@@ -228,29 +232,43 @@ function renderHistoryRow(row, index) {
 }
 
 function renderActionButtons(row, isMostRecent, isFailed, isMailSent) {
-    // Most recent trigger with Mail Sent or Report Generated status - View PDF
-    const isReportReady = isMailSent || row.status === 'Report Generated';
+    // Check if status indicates report is ready (including failed states after Report Generated)
+    const isReportReady = isMailSent || 
+                          row.status === 'Report Generated' ||
+                          row.status === 'Mail Sent(Failed)';
+    
+    // Most recent trigger with report ready - View PDF, View JSON, and optionally Retry if failed
     if (isMostRecent && isReportReady) {
-        return `
-            <button class="action-btn view" onclick="handleViewPDF('${row.id}')">
-                <i data-lucide="file-text" size="14"></i> View PDF
+        const retryButton = isFailed ? `
+            <button class="action-btn retry" onclick="handleRetry('${row.id}')" style="margin-left: 8px;" title="Retry">
+                <i data-lucide="refresh-cw" size="16"></i>
             </button>
+        ` : '';
+        
+        return `
+            <button class="action-btn view" onclick="handleViewPDF('${row.id}')" title="View PDF">
+                <i data-lucide="file-text" size="16"></i>
+            </button>
+            <button class="action-btn view" onclick="handleViewJSON('${row.id}')" style="margin-left: 8px;" title="View JSON">
+                <i data-lucide="file-json" size="16"></i>
+            </button>
+            ${retryButton}
         `;
     }
     
-    // Most recent trigger with Failed status - Retry only
+    // Most recent trigger with Failed status (before report generation) - Retry only
     if (isMostRecent && isFailed) {
         return `
-            <button class="action-btn retry" onclick="handleRetry('${row.id}')">
-                <i data-lucide="refresh-cw" size="14"></i> Retry
+            <button class="action-btn retry" onclick="handleRetry('${row.id}')" title="Retry">
+                <i data-lucide="refresh-cw" size="16"></i>
             </button>
         `;
     }
     
     // Other triggers - Delete only
     return `
-        <button class="action-btn delete" onclick="openDeleteModal('${row.id}')">
-            <i data-lucide="trash-2" size="14"></i> Delete
+        <button class="action-btn delete" onclick="openDeleteModal('${row.id}')" title="Delete">
+            <i data-lucide="trash-2" size="16"></i>
         </button>
     `;
 }
@@ -485,6 +503,22 @@ async function handleSendSubmit() {
 // ============================================
 function handleViewPDF(id) {
     window.open(`${API_BASE}/view-pdf/${id}`, '_blank');
+}
+
+async function handleViewJSON(id) {
+    try {
+        const res = await fetch(`${API_BASE}/view-json/${id}`);
+        if (!res.ok) throw new Error('Failed to get Google Doc URL');
+        const data = await res.json();
+        if (data.google_doc_url) {
+            window.open(data.google_doc_url, '_blank');
+        } else {
+            showNotification('Google Doc URL not available yet', 'warning');
+        }
+    } catch (err) {
+        console.error("Failed to get Google Doc URL:", err);
+        showNotification('Failed to get Google Doc URL', 'error');
+    }
 }
 
 function handleRetry(id) {
