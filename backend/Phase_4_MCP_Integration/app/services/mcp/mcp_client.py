@@ -372,7 +372,13 @@ class RawMCPClient:
                     try:
                         parsed = json.loads(json_str)
                         print(f"[JSON] Parsed successfully: {list(parsed.keys())}")
-                    except json.JSONDecodeError:
+                    except json.JSONDecodeError as e:
+                        # Check if this might be truncated JSON (starts with { but doesn't end properly)
+                        if json_str.strip().startswith('{') and not json_str.strip().endswith('}'):
+                            print(f"[MCP] Warning: Truncated JSON detected: {json_str[:100]}...")
+                            print(f"[MCP] JSON error: {e}")
+                            # Try to accumulate more data
+                            continue
                         # Not JSON, treat as log message
                         print(f"[Server Log] {decoded_line}")
                         response_container["server_logs"].append(decoded_line)
@@ -636,6 +642,7 @@ class RawMCPClient:
             print(f"  GOOGLE_REFRESH_TOKEN: {'set' if env.get('GOOGLE_REFRESH_TOKEN') else 'NOT SET'}")
             
             # Start process with stderr redirected to stdout for debugging
+            # Use a larger buffer size to handle long JSON responses
             self.process = subprocess.Popen(
                 [npx_cmd] + self.mcp_server_args,
                 stdin=subprocess.PIPE,
@@ -643,7 +650,7 @@ class RawMCPClient:
                 stderr=subprocess.STDOUT,  # Merge stderr into stdout for debugging
                 text=False,
                 env=env,
-                bufsize=0  # Unbuffered
+                bufsize=65536  # 64KB buffer for large JSON responses
             )
             
             print(f"Process started with PID: {self.process.pid}")
