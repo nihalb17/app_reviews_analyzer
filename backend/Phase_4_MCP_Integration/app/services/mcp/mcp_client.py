@@ -745,39 +745,12 @@ class RawMCPClient:
                 self._stop_server()
                 return self._fallback_save(content, "MCP initialization failed")
             
-            # List available tools
-            print("Listing available tools...")
-            tools = self._list_tools()
+            # Skip tools/list - it returns too much data and causes pipe buffer issues
+            # We know the server has appendText and replaceDocumentWithMarkdown tools
+            print("Using known tools from @a-bonus/google-docs-mcp server...")
             
-            print(f"  Tools response: {tools}")
-            
-            if not tools:
-                print("  ERROR: No tools returned from MCP server")
-                print("  This may indicate:")
-                print("    - Authentication failure (check GOOGLE_REFRESH_TOKEN)")
-                print("    - Google Doc ID not accessible")
-                print("    - MCP server in bad state")
-                self._stop_server()
-                return self._fallback_save(content, "No tools available from MCP server")
-            
-            # Find append/write tool
-            append_tool = None
-            for tool in tools:
-                tool_name = tool.get("name", "").lower()
-                if "append" in tool_name or "write" in tool_name or "update" in tool_name:
-                    append_tool = tool
-                    break
-            
-            if not append_tool:
-                self._stop_server()
-                return {
-                    "success": False,
-                    "error": "No append tool found",
-                    "available_tools": [t.get("name") for t in tools]
-                }
-            
-            tool_name = append_tool.get("name")
-            print(f"Using tool: {tool_name}")
+            # Try replaceDocumentWithMarkdown first, then fallback to appendText
+            tool_name = "replaceDocumentWithMarkdown"
             
             # Call the tool using the replace helper method
             result = self._replace_google_doc_content(self.google_doc_id, content)
