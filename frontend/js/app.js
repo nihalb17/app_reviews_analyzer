@@ -353,17 +353,8 @@ function renderSendFormModal() {
                     </div>
                     
                     <div class="form-group">
-                        <label>Receiver Name <span class="required">*</span></label>
-                        <input type="text" id="send-receiver-name" class="form-control" 
-                               placeholder="Enter receiver's name" required>
-                        <div class="form-error" id="send-receiver-name-error">Receiver name is required</div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Receiver Email <span class="required">*</span></label>
-                        <input type="email" id="send-receiver-email" class="form-control" 
-                               placeholder="Enter receiver's email" required>
-                        <div class="form-error" id="send-receiver-email-error">Please enter a valid email address</div>
+                        <label>Recipient</label>
+                        <div class="form-control" style="background: #f5f5f5; color: #666;">Nihal (nihalreddyb1997@gmail.com)</div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -423,35 +414,6 @@ function validateSendForm() {
         reviewCountInput.classList.remove('error');
     }
     
-    // Validate receiver name
-    const receiverName = document.getElementById('send-receiver-name').value.trim();
-    const receiverNameError = document.getElementById('send-receiver-name-error');
-    const receiverNameInput = document.getElementById('send-receiver-name');
-    
-    if (!receiverName) {
-        receiverNameError.classList.add('visible');
-        receiverNameInput.classList.add('error');
-        isValid = false;
-    } else {
-        receiverNameError.classList.remove('visible');
-        receiverNameInput.classList.remove('error');
-    }
-    
-    // Validate receiver email
-    const receiverEmail = document.getElementById('send-receiver-email').value.trim();
-    const receiverEmailError = document.getElementById('send-receiver-email-error');
-    const receiverEmailInput = document.getElementById('send-receiver-email');
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    
-    if (!receiverEmail || !emailRegex.test(receiverEmail)) {
-        receiverEmailError.classList.add('visible');
-        receiverEmailInput.classList.add('error');
-        isValid = false;
-    } else {
-        receiverEmailError.classList.remove('visible');
-        receiverEmailInput.classList.remove('error');
-    }
-    
     return isValid;
 }
 
@@ -469,8 +431,8 @@ async function handleSendSubmit() {
         reviews_count: parseInt(document.getElementById('send-review-count').value),
         weeks: parseInt(document.getElementById('send-time-period').value),
         role: document.getElementById('send-role').value,
-        recipient_name: document.getElementById('send-receiver-name').value.trim(),
-        recipient_email: document.getElementById('send-receiver-email').value.trim(),
+        recipient_name: 'Nihal',
+        recipient_email: 'nihalreddyb1997@gmail.com',
         mode: 'email',
         type: 'Manual'
     };
