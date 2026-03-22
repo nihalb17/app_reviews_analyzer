@@ -357,16 +357,14 @@ class RawMCPClient:
                     if not decoded_line:
                         continue
                     
-                    # Skip log/info messages (lines that don't start with {)
-                    if not decoded_line.startswith("{"):
-                        print(f"[Server Log] {decoded_line}")
-                        response_container["server_logs"].append(decoded_line)
-                        continue
-                    
-                    # Try to parse as JSON
+                    # Try to parse as JSON first (even if it doesn't start with {)
+                    # The server might embed JSON in log messages
+                    parsed = None
                     try:
                         parsed = json.loads(decoded_line)
+                        print(f"[JSON] Parsed successfully: {list(parsed.keys())}")
                     except json.JSONDecodeError:
+                        # Not JSON, treat as log message
                         print(f"[Server Log] {decoded_line}")
                         response_container["server_logs"].append(decoded_line)
                         continue
