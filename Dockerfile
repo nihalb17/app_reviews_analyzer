@@ -32,8 +32,8 @@ RUN apt-get update && apt-get install -y \
     fonts-unifont \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Node.js 18.x (required for MCP server)
-RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+# Install Node.js 20.x (required for MCP server - needs File API)
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
