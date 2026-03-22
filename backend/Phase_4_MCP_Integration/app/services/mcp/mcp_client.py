@@ -334,7 +334,13 @@ class RawMCPClient:
             try:
                 # Keep reading lines until we get a valid JSON-RPC response with matching ID
                 while True:
-                    response_line = self.process.stdout.readline()
+                    try:
+                        response_line = self.process.stdout.readline()
+                    except OSError as e:
+                        # Process stdout is closed/invalid
+                        print(f"[MCP] OSError reading from process: {e}")
+                        print(f"[MCP] Process poll status: {self.process.poll()}")
+                        break
                     
                     # Handle None (stream closed) or empty bytes
                     if response_line is None or response_line == b'':
@@ -625,30 +631,38 @@ class RawMCPClient:
                 bufsize=0  # Unbuffered
             )
             
+            print(f"Process started with PID: {self.process.pid}")
+            
             # Give the server more time to start (OAuth can be slow)
             import time
-            import select
             
             print("Waiting for MCP server to initialize...")
-            time.sleep(5)  # Increased from 3 to 5 seconds
             
-            # Try to read any initial output (non-blocking)
-            # This helps debug what the server is doing
-            if self.process.stdout:
-                # Set to non-blocking mode
-                import fcntl
-                try:
-                    fd = self.process.stdout.fileno()
-                    fl = fcntl.fcntl(fd, fcntl.F_GETFL)
-                    fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
-                except:
-                    pass  # May not work on all systems
+            # Check process status frequently during startup
+            for i in range(10):
+                time.sleep(0.5)
+                poll_result = self.process.poll()
+                if poll_result is not None:
+                    # Process exited
+                    print(f"MCP server exited during startup at iteration {i} with code: {poll_result}")
+                    try:
+                        # Try to read any output
+                        output = self.process.stdout.read()
+                        if output:
+                            print(f"Server output: {output.decode()[:1000]}")
+                    except Exception as e:
+                        print(f"Could not read output: {e}")
+                    return False
+                print(f"  [{i+1}/10] Process still running (PID: {self.process.pid})")
             
             # Check if process is still running
             if self.process.poll() is not None:
                 # Process exited immediately
-                output = self.process.stdout.read()
-                print(f"MCP server exited immediately. Output: {output.decode()[:500]}")
+                try:
+                    output = self.process.stdout.read()
+                    print(f"MCP server exited. Output: {output.decode()[:500]}")
+                except:
+                    pass
                 return False
             
             print("MCP server process started, proceeding with initialization...")

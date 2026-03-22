@@ -40,6 +40,9 @@ RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
 # Verify Node.js and npm installation
 RUN node --version && npm --version
 
+# Pre-install MCP server package (required for Phase 4)
+RUN npm install -g @a-bonus/google-docs-mcp
+
 # Copy requirements first for better caching
 COPY requirements.txt .
 
