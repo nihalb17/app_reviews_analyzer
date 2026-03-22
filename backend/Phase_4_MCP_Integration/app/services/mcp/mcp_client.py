@@ -328,17 +328,24 @@ class RawMCPClient:
         import threading
         import time
         
-        response_container = {"data": None, "error": None}
+        response_container = {"data": None, "error": None, "server_logs": []}
         
         def read_response():
             try:
                 # Keep reading lines until we get a valid JSON-RPC response with matching ID
                 while True:
                     response_line = self.process.stdout.readline()
-                    if not response_line:
+                    
+                    # Handle None (stream closed) or empty bytes
+                    if response_line is None or response_line == b'':
+                        print("[MCP] Server closed stdout stream")
                         break
                     
-                    decoded_line = response_line.decode().strip()
+                    try:
+                        decoded_line = response_line.decode().strip()
+                    except UnicodeDecodeError as e:
+                        print(f"[MCP] Unicode decode error: {e}")
+                        continue
                     
                     # Skip empty lines
                     if not decoded_line:
@@ -347,6 +354,7 @@ class RawMCPClient:
                     # Skip log/info messages (lines that don't start with {)
                     if not decoded_line.startswith("{"):
                         print(f"[Server Log] {decoded_line}")
+                        response_container["server_logs"].append(decoded_line)
                         continue
                     
                     # Try to parse as JSON
@@ -354,6 +362,7 @@ class RawMCPClient:
                         parsed = json.loads(decoded_line)
                     except json.JSONDecodeError:
                         print(f"[Server Log] {decoded_line}")
+                        response_container["server_logs"].append(decoded_line)
                         continue
                     
                     # Check if this is a notification (no 'id' field) - skip it
@@ -373,6 +382,9 @@ class RawMCPClient:
                         print(f"[Warning] Response ID mismatch: expected {request_id}, got {parsed.get('id')}")
                         
             except Exception as e:
+                import traceback
+                print(f"[MCP] Exception in read_response: {e}")
+                traceback.print_exc()
                 response_container["error"] = str(e)
         
         # Start reader thread
@@ -404,7 +416,17 @@ class RawMCPClient:
             return {"error": response_container["error"]}
         
         if response_container["data"] is None:
-            return {"error": "Timeout waiting for response"}
+            # Check if process is still alive
+            if self.process.poll() is not None:
+                error_msg = f"MCP server exited with code {self.process.returncode}"
+            else:
+                error_msg = "Timeout waiting for response"
+            
+            # Include any server logs we captured
+            if response_container["server_logs"]:
+                error_msg += f"\nServer logs: {response_container['server_logs'][-5:]}"  # Last 5 logs
+            
+            return {"error": error_msg}
         
         response_str = response_container["data"]
         # Only print first 100 chars to avoid flooding terminal
@@ -558,11 +580,18 @@ class RawMCPClient:
             print(f"Starting MCP server with: {npx_cmd}")
             print(f"Package: {self.mcp_server_package}")
             
+            # Verify npx is available
+            import shutil
+            npx_path = shutil.which(npx_cmd)
+            if not npx_path:
+                print(f"ERROR: {npx_cmd} not found in PATH")
+                return False
+            print(f"npx found at: {npx_path}")
+            
             # Set up environment with local node if needed
             env = os.environ.copy()
             if not self.node_manager.is_installed():
-                import shutil
-                if not shutil.which("npx"):
+                if not npx_path:
                     return False
             else:
                 # Add local node to PATH
@@ -578,6 +607,12 @@ class RawMCPClient:
             refresh_token = os.environ.get("GOOGLE_REFRESH_TOKEN")
             if refresh_token:
                 env["GOOGLE_REFRESH_TOKEN"] = refresh_token
+            
+            # Debug: print environment (without secrets)
+            print(f"Environment variables set:")
+            print(f"  GOOGLE_CLIENT_ID: {'set' if env.get('GOOGLE_CLIENT_ID') else 'NOT SET'}")
+            print(f"  GOOGLE_CLIENT_SECRET: {'set' if env.get('GOOGLE_CLIENT_SECRET') else 'NOT SET'}")
+            print(f"  GOOGLE_REFRESH_TOKEN: {'set' if env.get('GOOGLE_REFRESH_TOKEN') else 'NOT SET'}")
             
             # Start process with stderr redirected to stdout for debugging
             self.process = subprocess.Popen(
