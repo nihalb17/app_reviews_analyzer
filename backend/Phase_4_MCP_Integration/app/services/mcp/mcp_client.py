@@ -381,7 +381,24 @@ class RawMCPClient:
         reader_thread.start()
         
         # Wait for response with timeout (longer for initial auth)
-        reader_thread.join(timeout=30)
+        # First request may need more time for Google OAuth
+        timeout = 60 if method == "initialize" else 30
+        print(f"Waiting up to {timeout}s for response (method: {method})...")
+        
+        # Check periodically if process is still alive
+        start_time = time.time()
+        while reader_thread.is_alive() and (time.time() - start_time) < timeout:
+            reader_thread.join(timeout=1)  # Check every second
+            if self.process.poll() is not None:
+                print(f"MCP server process died during request (exit code: {self.process.returncode})")
+                # Try to read any remaining output
+                try:
+                    remaining = self.process.stdout.read()
+                    if remaining:
+                        print(f"Remaining output: {remaining.decode()[:500]}")
+                except:
+                    pass
+                break
         
         if response_container["error"]:
             return {"error": response_container["error"]}
@@ -573,9 +590,24 @@ class RawMCPClient:
                 bufsize=0  # Unbuffered
             )
             
-            # Give the server a moment to start
+            # Give the server more time to start (OAuth can be slow)
             import time
-            time.sleep(3)
+            import select
+            
+            print("Waiting for MCP server to initialize...")
+            time.sleep(5)  # Increased from 3 to 5 seconds
+            
+            # Try to read any initial output (non-blocking)
+            # This helps debug what the server is doing
+            if self.process.stdout:
+                # Set to non-blocking mode
+                import fcntl
+                try:
+                    fd = self.process.stdout.fileno()
+                    fl = fcntl.fcntl(fd, fcntl.F_GETFL)
+                    fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
+                except:
+                    pass  # May not work on all systems
             
             # Check if process is still running
             if self.process.poll() is not None:
@@ -584,6 +616,7 @@ class RawMCPClient:
                 print(f"MCP server exited immediately. Output: {output.decode()[:500]}")
                 return False
             
+            print("MCP server process started, proceeding with initialization...")
             return True
         except Exception as e:
             print(f"Failed to start MCP server: {e}")
