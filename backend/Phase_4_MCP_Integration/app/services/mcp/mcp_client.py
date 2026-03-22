@@ -360,8 +360,17 @@ class RawMCPClient:
                     # Try to parse as JSON first (even if it doesn't start with {)
                     # The server might embed JSON in log messages
                     parsed = None
+                    json_str = decoded_line
+                    
+                    # Check if this is a log message containing JSON
+                    if '[Server Log]' in decoded_line:
+                        # Try to extract JSON from after the log prefix
+                        json_start = decoded_line.find('{')
+                        if json_start != -1:
+                            json_str = decoded_line[json_start:]
+                    
                     try:
-                        parsed = json.loads(decoded_line)
+                        parsed = json.loads(json_str)
                         print(f"[JSON] Parsed successfully: {list(parsed.keys())}")
                     except json.JSONDecodeError:
                         # Not JSON, treat as log message
