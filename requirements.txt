@@ -16,6 +16,10 @@ python-dotenv==1.0.0
 # Play Store Scraper
 google-play-scraper==1.2.6
 
+# Web Scraping (for Fee Explainer)
+beautifulsoup4==4.12.3
+requests==2.31.0
+
 # Language Detection
 langdetect==1.0.9
 
@@ -34,7 +38,6 @@ playwright==1.41.0
 
 # HTTP Client
 httpx==0.26.0
-requests==2.31.0
 
 # Testing
 pytest==7.4.4
