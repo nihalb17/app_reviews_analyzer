@@ -21,6 +21,17 @@ Part B: The project:
 Both part A and part B are attached in the same mail, and via MCP, the JSONs generated in part A and part B are appended or updated in a Google Doc. 
 In the mail, the content is of both the parts in the mail body, and there is a CTA to view Google Docs where the combined JSON of part A and part B is present. Also, there is an attachment in the mail, a PDF, where more details, like sample reviews under each theme, are mentioned. 
 
+The entire pipeline can be triggered both manually and via scheduler. The scheduler runs every four hours in a day. 
+
+Deployement Links
+
+FE - https://app-reviews-analyzer.vercel.app/
+
+BE - https://app-reviews-analyzer-1.onrender.com/
+
+Json DOC Link: https://docs.google.com/document/d/1sA4e68KZOm3ovauae7pgAsj0al4b5bq1BdkaUGc6oPk/edit?tab=t.0
+
+
 
 Part A Sources:
 
