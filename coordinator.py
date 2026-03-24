@@ -347,6 +347,7 @@ def run_full_pipeline(trigger_id, reviews_count, weeks, role, recipient_name, re
                         '--insights-file', insights_file,
                         '--reviews-file', reviews_file,
                         '--role', role,
+                        '--weeks', str(weeks),
                         '--output-dir', 'output'
                     ],
                     capture_output=True,

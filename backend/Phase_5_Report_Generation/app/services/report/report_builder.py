@@ -38,7 +38,8 @@ class ReportBuilder:
         role: str,
         insights_file: str,
         reviews_file: Optional[str] = None,
-        fee_explainer_file: Optional[str] = None
+        fee_explainer_file: Optional[str] = None,
+        weeks: int = 10
     ) -> Dict[str, Any]:
         """
         Build complete report data from insights file
@@ -48,6 +49,7 @@ class ReportBuilder:
             insights_file: Path to Phase 3 insights JSON file
             reviews_file: Optional path to reviews file for metadata
             fee_explainer_file: Optional path to fee explainer JSON file
+            weeks: Number of weeks covered by the analysis
             
         Returns:
             Complete report data dictionary
@@ -73,7 +75,7 @@ class ReportBuilder:
                 'total_reviews': metadata.get('total_reviews', 0),
                 'date_range': metadata.get('date_range', 'N/A'),
                 'analysis_date': format_ist_datetime(),
-                'weeks_covered': metadata.get('weeks_covered', '10')
+                'weeks_covered': str(weeks)  # Use passed weeks parameter
             },
             'executive_summary': insights.get('summary', ''),
             'themes': self._process_themes(insights.get('themes', [])),

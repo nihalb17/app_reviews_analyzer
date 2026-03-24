@@ -45,6 +45,12 @@ def main():
         help='Target role for the report'
     )
     parser.add_argument(
+        '--weeks',
+        type=int,
+        default=10,
+        help='Number of weeks covered by the analysis (default: 10)'
+    )
+    parser.add_argument(
         '--output-dir',
         type=str,
         default='output',
@@ -82,7 +88,8 @@ def main():
         report_data = report_builder.build_report(
             role=args.role,
             insights_file=args.insights_file,
-            reviews_file=args.reviews_file
+            reviews_file=args.reviews_file,
+            weeks=args.weeks
         )
         print(f"  OK: Report data built for role: {args.role}")
         print(f"  OK: Total reviews: {report_data['metadata']['total_reviews']}")

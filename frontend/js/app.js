@@ -331,16 +331,16 @@ function renderSendFormModal() {
                     <div class="form-group">
                         <label>Number of Reviews <span class="required">*</span></label>
                         <input type="number" id="send-review-count" class="form-control" 
-                               value="1000" min="0" max="2000" step="100" required>
-                        <div class="form-hint">Default: 1000, Max: 2000</div>
+                               value="500" min="0" max="2000" step="100" required>
+                        <div class="form-hint">Default: 500, Max: 2000</div>
                         <div class="form-error" id="send-review-count-error">Please enter a value between 10 and 2000</div>
                     </div>
                     
                     <div class="form-group">
                         <label>Time Period <span class="required">*</span></label>
                         <select id="send-time-period" class="form-control" required>
-                            ${Array.from({ length: 12 }, (_, i) => 
-                                `<option value="${i + 1}" ${i + 1 === 7 ? 'selected' : ''}>Last ${i + 1} Week${i + 1 > 1 ? 's' : ''}</option>`
+                            ${Array.from({ length: 12 }, (_, i) =>
+                                `<option value="${i + 1}" ${i + 1 === 5 ? 'selected' : ''}>Last ${i + 1} Week${i + 1 > 1 ? 's' : ''}</option>`
                             ).join('')}
                         </select>
                     </div>
