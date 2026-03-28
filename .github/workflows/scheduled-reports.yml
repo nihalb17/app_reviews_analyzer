@@ -1,17 +1,9 @@
 name: Scheduled Reports
 
 on:
-  schedule:
-    # Run every 4 hours at 23:25 IST (17:55 UTC)
-    # IST = UTC + 5:30
-    # 23:25 IST = 17:55 UTC
-    # 03:25 IST = 21:55 UTC
-    # 07:25 IST = 01:55 UTC
-    # 11:25 IST = 05:55 UTC
-    # 15:25 IST = 09:55 UTC
-    # 19:25 IST = 13:55 UTC
-    # GitHub Actions cron format: minute hour day month day-of-week
-    - cron: '55 17,21,1,5,9,13 * * *'
+  # Scheduler disabled - uncomment to re-enable
+  # schedule:
+  #   - cron: '55 17,21,1,5,9,13 * * *'
   workflow_dispatch:
     inputs:
       reason:
